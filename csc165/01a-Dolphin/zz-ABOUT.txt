@@ -1,0 +1,16 @@
+Keyboard Controls:
+    A/D: Yaw Left/Right
+    W/S: Move Forward/Backward
+    ArrowUp/ArrowDown: Pitch Up/Down
+    Spacebar: Alternate between connected camera, and disconnected camera
+    Q/E: Roll Left/Right
+    2, 3: Wireframe true/false on the dolphin
+    4: Reset camera to 0, 0, 0
+    ESC: Escape to quit
+Note: SpaceBar and 2, 3, 4 keys work only after clicking the game window
+
+Game controller
+    X-Axis Left Joystick: Yaw Left/Right
+    Y-Axis Left Joystick: Move Forward/Backward
+    X-Axis Right Joystick: Pitch Up/Down
+    Controller Button 3/4: Move Forward/Backward
