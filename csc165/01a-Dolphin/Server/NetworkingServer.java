@@ -1,4 +1,4 @@
-package server;
+package Server;
 
 import java.io.IOException;
 import tage.networking.IGameConnection.ProtocolType;
