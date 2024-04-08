@@ -31,7 +31,7 @@ public class CameraOrbit3D {
     private float cameraAzimuth; // rotation around target Y axis
     private float cameraElevation; // elevation of camera above target
     private float cameraRadius; // distance between camera and target
-    private static final float SMOOTHNESS_FACTOR = 0.005f;
+    private static final float SMOOTHNESS_FACTOR = 0.025f;
 
     /** instantiates a CameraOrbit3D with a Camera object, GameObject, String name, and Engine*/
     public CameraOrbit3D(Camera cam, GameObject av,
@@ -41,7 +41,7 @@ public class CameraOrbit3D {
         avatar = av;
         cameraAzimuth = 0.0f; // start BEHIND and ABOVE the target
         cameraElevation = 20.0f; // elevation is in degrees
-        cameraRadius = 3.5f; // distance from camera to avatar
+        cameraRadius = 1.5f; // distance from camera to avatar
         setupInputs(gpName);
         updateCameraPosition();
     } 

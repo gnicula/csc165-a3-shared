@@ -39,12 +39,13 @@ public class MyGame extends VariableFrameRateGame {
 	private int counter = 0;
 	private int gameOver = 0;
 	private int frameCounter = 0;
+	private int remainingMissiles = 5;
 	private int skyBoxID;
 	private double lastFrameTime, currFrameTime, elapsTime;
 	private ArrayList<GameObject> movingObjects = new ArrayList<GameObject>();
 	private ArrayList<GameObject> movingEnemies = new ArrayList<GameObject>();
 	private GameObject dol, base, torus, sphere, sphereSatellite, plane, groundPlane,
-			wAxisX, wAxisY, wAxisZ, manual, magnet, missileObj, tower;
+			wAxisX, wAxisY, wAxisZ, manual, magnet, missileObj, tower, reloadingStation;
 	private ObjShape dolS, cubS, torusS, enemyShape, planeS, groundPlaneS, wAxisLineShapeX, wAxisLineShapeY, 
 			wAxisLineShapeZ, manualS, magnetS, worldObj, missileShape, towerS;
 	private TextureImage doltx, brick, grass, corvette, assignt, enemyTexture, metal, water, 
@@ -194,6 +195,13 @@ public class MyGame extends VariableFrameRateGame {
 		base.setLocalTranslation(initialTranslationB);
 		base.setLocalScale(initialScaleB);
 
+		// build a reloading station for missiles.
+		reloadingStation = new GameObject(GameObject.root(), missileShape, missile);
+		Matrix4f initialTranslationM = (new Matrix4f()).translation(15.0f, 15.0f, 15.0f);
+		Matrix4f initialScaleM = (new Matrix4f()).scaling(0.25f);
+		reloadingStation.setLocalTranslation(initialTranslationM);
+		reloadingStation.setLocalScale(initialScaleM);
+
 		// A2 requirement - add a hierarchical relationship
 		// GameObject cubSatellite = new GameObject(cub, imported, fur);
 		// cubSatellite.getRenderStates().setTiling(1);
@@ -312,9 +320,10 @@ public class MyGame extends VariableFrameRateGame {
 		orbitController = new CameraOrbit3D(myCamera, dol, gamepadName, engine);
 		
 		// Initialize our nodeControllers for each target object
-		// NodeController rotController1 = new RotationController(engine, new Vector3f(0,1,0), 0.002f);
-		// rotController1.addTarget(base);
-		// controllerArr.add(rotController1);
+		NodeController rotController1 = new RotationController(engine, new Vector3f(0,1,0), 0.002f);
+		rotController1.addTarget(reloadingStation);
+		controllerArr.add(rotController1);
+		rotController1.enable();
 		// NodeController rotController2 = new RotationController(engine, new Vector3f(0,1,0), 0.002f);
 		// rotController2.addTarget(torus);
 		// controllerArr.add(rotController2);
@@ -326,9 +335,9 @@ public class MyGame extends VariableFrameRateGame {
 		// controllerArr.add(rotController4);
 		// put all object node controllers in an array for indexed access
 		// when the objects are visited
-		// for (NodeController n : controllerArr) {
-		// 	(engine.getSceneGraph()).addNodeController(n);
-		// }
+		for (NodeController n : controllerArr) {
+			(engine.getSceneGraph()).addNodeController(n);
+		}
 		// Initialize a second node controller (dual axis stretch) on the pyramid manual object
 		// NodeController stretchController1 = new StretchController(engine, 2.5f);
 		// stretchController1.addTarget(manual);
@@ -461,7 +470,7 @@ public class MyGame extends VariableFrameRateGame {
 				rollJ, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 
 		inputManager.associateActionWithAllGamepads(
-				net.java.games.input.Component.Identifier.Button._1,
+				net.java.games.input.Component.Identifier.Button._0,
 				fireMissile, InputManager.INPUT_ACTION_TYPE.ON_PRESS_ONLY);
 		
 
@@ -485,8 +494,9 @@ public class MyGame extends VariableFrameRateGame {
 		String elapsTimeStr = Integer.toString(elapsTimeSec);
 		String counterStr = Integer.toString(counter);
 		counterStr =  gameOver == 2 ? "Score = " + " You Lose!" : "Score = " + counterStr + " You Win!";
-		String dispStr1 = "Time = " + elapsTimeStr + " " + elapsedFramesPerSecond;
-		String dispStr2 = "Pos = " + printVector3f(dol.getWorldLocation());
+		// String dispStr1 = "Time = " + elapsTimeStr + " " + elapsedFramesPerSecond;
+		String dispStr1 = "Time: " + elapsTimeStr + ", Missiles: " + remainingMissiles;
+		String dispStr2 = "Pos: " + printVector3f(dol.getWorldLocation());
 		Vector3f hud1Color = new Vector3f(1, 0, 0);
 		Vector3f hud2Color = new Vector3f(0, 0, 1);
 		int hud1x, hud1y, hud2x, hud2y;
@@ -524,10 +534,11 @@ public class MyGame extends VariableFrameRateGame {
 		arrangeHUD(elapsedFramesPerSecond);
 		inputManager.update(elapsedFramesPerSecond);
 		orbitController.updateCameraPosition();
+		checkForMissileReloading();
 		updateMovingObjects(elapsedFramesPerSecond);
 		// ((AnimatedShape)dolS).updateAnimation();
 		// updateDolphinScore();
-		toggleNodeControllers();
+		// toggleNodeControllers();
 		// avatarGroundCollision();
 		protClient.sendRotationMessage(dol.getWorldRotation());
 		protClient.sendMoveMessage(dol.getWorldLocation()); //TODO optimiz?e this message
@@ -702,21 +713,24 @@ public class MyGame extends VariableFrameRateGame {
 	}
 
 	public void fireMissile(float speed) {
-		GameObject missileObject = new GameObject(GameObject.root(), missileShape, missile);
-		// missileObject.setParent(GameObject.root());
-		Vector3f dolLocation = dol.getWorldLocation();
-		Vector3f dolDirection = dol.getLocalForwardVector();
-
-		Matrix4f initialTranslation = (new Matrix4f()).translation(dolLocation.x(), dolLocation.y(), dolLocation.z());
-		Matrix4f initialScale = (new Matrix4f()).scaling(0.1f);
-		missileObject.setLocalTranslation(initialTranslation);
-		missileObject.setLocalScale(initialScale);
-
-		// missileObject.setLocation(dol.getWorldLocation());
-		missileObject.setLocalRotation(dol.getLocalRotation());
-		// missileObject.lookAt(dolDirection.x(), dolDirection.y(), dolDirection.z());
-		movingObjects.add(missileObject);
-		protClient.sendCreateMissileMessage(missileObject.getWorldLocation());
+		if (remainingMissiles > 0) {
+			GameObject missileObject = new GameObject(GameObject.root(), missileShape, missile);
+			// missileObject.setParent(GameObject.root());
+			Vector3f dolLocation = dol.getWorldLocation();
+			Vector3f dolDirection = dol.getLocalForwardVector();
+	
+			Matrix4f initialTranslation = (new Matrix4f()).translation(dolLocation.x(), dolLocation.y(), dolLocation.z());
+			Matrix4f initialScale = (new Matrix4f()).scaling(0.1f);
+			missileObject.setLocalTranslation(initialTranslation);
+			missileObject.setLocalScale(initialScale);
+	
+			// missileObject.setLocation(dol.getWorldLocation());
+			missileObject.setLocalRotation(dol.getLocalRotation());
+			// missileObject.lookAt(dolDirection.x(), dolDirection.y(), dolDirection.z());
+			movingObjects.add(missileObject);
+			protClient.sendCreateMissileMessage(missileObject.getWorldLocation());
+			--remainingMissiles;
+		}
 	}
 
 	private void updateMovingObjects(float elapsedFramesPerSecond) {
@@ -769,6 +783,12 @@ public class MyGame extends VariableFrameRateGame {
 		Vector3f loc = go.getWorldLocation();
 		float height = groundPlane.getHeight(loc.x(), loc.z());
 		go.setLocalLocation(new Vector3f(loc.x(), height, loc.z()));
+	}
+
+	private void checkForMissileReloading() {
+		if (dol.getWorldLocation().sub(reloadingStation.getWorldLocation()).length() < 0.2f) {
+			remainingMissiles = 5;
+		}
 	}
 
 
