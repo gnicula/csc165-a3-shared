@@ -1,1 +1,4 @@
 .vscode/settings.json
+csc165/01a-Dolphin/*/*.class
+csc165/01a-Dolphin/*/*/*.class
+csc165/01a-Dolphin/*/*/*/*.class
