@@ -164,18 +164,15 @@ public class MyGame extends VariableFrameRateGame {
 
 	@Override
 	public void buildObjects() {
-		// Local temporaries for building objects
-		Matrix4f initialTranslation, initialScale;
-
 		// build the ground plane on X-Z
 		System.out.println("about to create terain object");
 		groundPlane = new GameObject(GameObject.root(), groundPlaneS, terrainTexture);
 		System.out.println("created terain object");
 		groundPlane.setHeightMap(terrainHeightMap);
-		initialScale = (new Matrix4f()).scaling(20.0f);
-		groundPlane.setLocalScale(initialScale);
-		initialTranslation = (new Matrix4f()).translation(0, 0, 0.0f);
-		groundPlane.setLocalTranslation(initialTranslation);
+		Matrix4f initialScaleT = (new Matrix4f()).scaling(20.0f);
+		groundPlane.setLocalScale(initialScaleT);
+		Matrix4f initialTranslationT = (new Matrix4f()).translation(0, 0, 0.0f);
+		groundPlane.setLocalTranslation(initialTranslationT);
 		groundPlane.setIsTerrain(true);
 
 		// groundPlane.getRenderStates().setTiling(1);
@@ -183,17 +180,19 @@ public class MyGame extends VariableFrameRateGame {
 		
 		// build dolphin in the center of the window
 		dol = new GameObject(GameObject.root(), dolS, doltx);
-		initialTranslation = (new Matrix4f()).translation(0, 15.0f, 0);
-		initialScale = (new Matrix4f()).scaling(0.05f);
-		dol.setLocalTranslation(initialTranslation);
-		dol.setLocalScale(initialScale);
+		Matrix4f initialTranslationD = (new Matrix4f()).translation(0, 15.0f, 0);
+		// TODO: check why pitch and roll enables a visualization bug after
+		// long playing times.
+		Matrix4f initialScaleD = (new Matrix4f()).scaling(0.05f);
+		dol.setLocalTranslation(initialTranslationD);
+		dol.setLocalScale(initialScaleD);
 
 		// build our base at the center of the map.
 		base = new GameObject(GameObject.root(), towerS, towerTexture);
-		initialTranslation = (new Matrix4f()).translation(0, 10.5f, 0.5f);
-		initialScale = (new Matrix4f()).scaling(0.10f);
-		base.setLocalTranslation(initialTranslation);
-		base.setLocalScale(initialScale);
+		Matrix4f initialTranslationB = (new Matrix4f()).translation(0, 10.5f, 0.5f);
+		Matrix4f initialScaleB = (new Matrix4f()).scaling(0.10f);
+		base.setLocalTranslation(initialTranslationB);
+		base.setLocalScale(initialScaleB);
 
 		// A2 requirement - add a hierarchical relationship
 		// GameObject cubSatellite = new GameObject(cub, imported, fur);
@@ -346,11 +345,13 @@ public class MyGame extends VariableFrameRateGame {
 		ForwardBackActionJ moveJ = new ForwardBackActionJ(this, 0.0004f);
 		YawActionK leftYaw = new YawActionK(this, 1);
 		YawActionK rightYaw = new YawActionK(this, -1);
-		YawActionK leftYawController = new YawActionK(this, 1);
-		YawActionK rightYawController = new YawActionK(this, -1);
+		// YawActionK leftYawController = new YawActionK(this, 1);
+		// YawActionK rightYawController = new YawActionK(this, -1);
 		// YawActionJ XYaw = new YawActionJ(this);
 		RollActionK leftRoll = new RollActionK(this, -1);
 		RollActionK rightRoll = new RollActionK(this, 1);
+		RollActionJ rollJ = new RollActionJ(this, 0.0004f);
+		
 
 		// A2 New actions
 		SecondaryViewportZoomActionK zoomOut = new SecondaryViewportZoomActionK(this, 0.0008f);
@@ -444,16 +445,25 @@ public class MyGame extends VariableFrameRateGame {
 				CameraPitchJ, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 
 		inputManager.associateActionWithAllGamepads(
-				net.java.games.input.Component.Identifier.Button._5,
-				leftYawController, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+				net.java.games.input.Component.Identifier.Button._4,
+				leftYaw, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 
 		inputManager.associateActionWithAllGamepads(
-				net.java.games.input.Component.Identifier.Button._6,
-				rightYawController, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+				net.java.games.input.Component.Identifier.Button._5,
+				rightYaw, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 
 		inputManager.associateActionWithAllGamepads(
 				net.java.games.input.Component.Identifier.Axis.Z,
 				moveJ, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		
+		inputManager.associateActionWithAllGamepads(
+				net.java.games.input.Component.Identifier.Axis.X,
+				rollJ, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+
+		inputManager.associateActionWithAllGamepads(
+				net.java.games.input.Component.Identifier.Button._1,
+				fireMissile, InputManager.INPUT_ACTION_TYPE.ON_PRESS_ONLY);
+		
 
 		
 		setupNetworking();
@@ -469,13 +479,13 @@ public class MyGame extends VariableFrameRateGame {
 		return String.format("x:%2.3f, y:%2.3f, z:%2.3f", v.x(), v.y(), v.z());
 	}
 
-	private void arrangeHUD() {
+	private void arrangeHUD(float elapsedFramesPerSecond) {
 		// build and set HUD
 		int elapsTimeSec = Math.round((float) elapsTime);
 		String elapsTimeStr = Integer.toString(elapsTimeSec);
 		String counterStr = Integer.toString(counter);
 		counterStr =  gameOver == 2 ? "Score = " + " You Lose!" : "Score = " + counterStr + " You Win!";
-		String dispStr1 = "Time = " + elapsTimeStr + " " + counterStr;
+		String dispStr1 = "Time = " + elapsTimeStr + " " + elapsedFramesPerSecond;
 		String dispStr2 = "Pos = " + printVector3f(dol.getWorldLocation());
 		Vector3f hud1Color = new Vector3f(1, 0, 0);
 		Vector3f hud2Color = new Vector3f(0, 0, 1);
@@ -506,8 +516,8 @@ public class MyGame extends VariableFrameRateGame {
 			elapsTime += (currFrameTime - lastFrameTime) / 1000.0;
 		}
 
-		arrangeHUD();
 		float elapsedFramesPerSecond = getFramesPerSecond();
+		arrangeHUD(elapsedFramesPerSecond);
 		inputManager.update(elapsedFramesPerSecond);
 		orbitController.updateCameraPosition();
 		updateMovingObjects(elapsedFramesPerSecond);
