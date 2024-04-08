@@ -340,8 +340,8 @@ public class MyGame extends VariableFrameRateGame {
 		PitchActionK pitchDown = new PitchActionK(this, -0.0002f);
 		CameraPitchActionJ CameraPitchJ = new CameraPitchActionJ(this);
 		PitchActionJ pitchJ = new PitchActionJ(this, 0.0004f);
-		ForwardBackActionK moveForward = new ForwardBackActionK(this, 0.0004f);
-		ForwardBackActionK moveBackward = new ForwardBackActionK(this, -0.0004f);
+		ForwardBackActionK moveForward = new ForwardBackActionK(this, 0.0003f);
+		ForwardBackActionK moveBackward = new ForwardBackActionK(this, -0.0002f);
 		ForwardBackActionJ moveJ = new ForwardBackActionJ(this, 0.0004f);
 		YawActionK leftYaw = new YawActionK(this, 1);
 		YawActionK rightYaw = new YawActionK(this, -1);
@@ -517,6 +517,10 @@ public class MyGame extends VariableFrameRateGame {
 		}
 
 		float elapsedFramesPerSecond = getFramesPerSecond();
+		Vector3f dolcoords = dol.getWorldLocation();
+        Vector3f dolFwd = dol.getLocalForwardVector();
+        Vector3f newLocation = dolcoords.add(dolFwd.mul(0.0003f * elapsedFramesPerSecond));
+		dol.setLocalLocation(newLocation);
 		arrangeHUD(elapsedFramesPerSecond);
 		inputManager.update(elapsedFramesPerSecond);
 		orbitController.updateCameraPosition();
@@ -530,7 +534,7 @@ public class MyGame extends VariableFrameRateGame {
 		processNetworking((float)elapsTime);
 		frameCounter++;
 		// float heightOffset = groundPlane.getHeight(0, 0);
-		Vector3f dolcoords = dol.getWorldLocation();
+		
 		// System.out.println(dolcoords.x() + " " + dolcoords.y() + " " + dolcoords.z());
 	}
 
