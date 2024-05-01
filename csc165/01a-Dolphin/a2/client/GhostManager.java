@@ -17,6 +17,7 @@ public class GhostManager
 	private MyGame game;
 	private HashMap<UUID, GhostAvatar> ghostAvatars = new HashMap<UUID, GhostAvatar>();
 	private HashMap<UUID, GhostNPC> ghostNPCS = new HashMap<UUID, GhostNPC>();
+	private HashMap<UUID, GhostMarker> ghostMarkers = new HashMap<UUID, GhostMarker>();
 	private HashMap<UUID, GhostMissile> ghostMissiles = new HashMap<UUID, GhostMissile>();
 	private HashMap<UUID, GhostBullet> ghostBullets = new HashMap<UUID, GhostBullet>();
 
@@ -66,6 +67,36 @@ public class GhostManager
 		}
 		else
 		{	System.out.println("tried to update ghost avatar rotation, but unable to find ghost in list");
+		}
+	}
+
+	public void createGhostMarker(UUID id, Vector3f position) throws IOException
+	{
+		ObjShape marker = game.getMarkerShape();
+		TextureImage markerTexture = game.getMarkerTexture();
+		GhostMarker newMarker = new GhostMarker(id, marker, markerTexture, position);
+		Matrix4f initialScale = (new Matrix4f().scaling(0.1f));
+		newMarker.setLocalScale(initialScale);
+		ghostMarkers.put(id, newMarker);
+	}
+
+	public void updateGhostMarker(UUID id, Vector3f position) 
+	{
+		GhostMarker ghostMarker = ghostMarkers.get(id);
+		if (ghostMarker != null) {
+			ghostMarker.setPosition(position);
+		} else {
+			System.out.println("Tried to update ghost Marker position, but unable to find ghost in list.");
+		}
+	}
+
+	public void rotateGhostMarker(UUID id, Matrix4f rotate) {
+		GhostMarker ghostMarker = ghostMarkers.get(id);
+		if (ghostMarker != null)
+		{	ghostMarker.setRotation(rotate);
+		}
+		else
+		{	System.out.println("tried to update ghost Marker rotation, but unable to find ghost in list");
 		}
 	}
 

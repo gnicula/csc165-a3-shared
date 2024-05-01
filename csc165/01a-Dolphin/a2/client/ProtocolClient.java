@@ -86,6 +86,22 @@ public class ProtocolClient extends GameConnectionClient
 				}
 			}
 
+			if (messageTokens[0].compareTo("createMarker") == 0)
+			{
+				UUID markerId = UUID.fromString(messageTokens[1]);
+
+				Vector3f markerPosition = new Vector3f(
+					Float.parseFloat(messageTokens[2]),
+					Float.parseFloat(messageTokens[3]),
+					Float.parseFloat(messageTokens[4]));
+				
+				try {
+					ghostManager.createGhostMarker(markerId, markerPosition);
+				} catch (IOException e) {
+					System.out.println("Error creating ghost marker");
+				}
+			}
+
 			if (messageTokens[0].compareTo("createMissile") == 0)
 			{
 				UUID missileId = UUID.fromString(messageTokens[1]);
@@ -116,6 +132,23 @@ public class ProtocolClient extends GameConnectionClient
 				} catch (IOException e) {
 					System.out.println("Error creating ghost bullet");
 				}
+			}
+
+			// Handle Marker MOVE message
+			// Format: (move,remoteId,x,y,z)
+			if (messageTokens[0].compareTo("moveMarker") == 0)
+			{
+				// move a Marker
+				// Parse out the id into a UUID
+				UUID ghostID = UUID.fromString(messageTokens[1]);
+				
+				// Parse out the position into a Vector3f
+				Vector3f markerPosition = new Vector3f(
+					Float.parseFloat(messageTokens[2]),
+					Float.parseFloat(messageTokens[3]),
+					Float.parseFloat(messageTokens[4]));
+				
+				ghostManager.updateGhostMarker(ghostID, markerPosition);
 			}
 
 			// Handle Missile MOVE message
@@ -150,6 +183,35 @@ public class ProtocolClient extends GameConnectionClient
 					Float.parseFloat(messageTokens[4]));
 				
 				ghostManager.updateGhostBullet(ghostID, bulletPosition);
+			}
+
+			// Handle Marker ROTATION message
+			// Format: (rotate,remoteId,a00,a01,a02,a03,a10,a11 ...)
+			if (messageTokens[0].compareTo("rotateMarker") == 0) {
+				UUID ghostID = UUID.fromString(messageTokens[1]);
+				float[][] values = new float[4][4];
+				
+				// Parse out the position into a Matrix4f
+				Matrix4f markerRotation = new Matrix4f(
+					Float.parseFloat(messageTokens[2]),
+					Float.parseFloat(messageTokens[3]),
+					Float.parseFloat(messageTokens[4]),
+					Float.parseFloat(messageTokens[5]),
+					Float.parseFloat(messageTokens[6]),
+					Float.parseFloat(messageTokens[7]),
+					Float.parseFloat(messageTokens[8]),
+					Float.parseFloat(messageTokens[9]),
+					Float.parseFloat(messageTokens[10]),
+					Float.parseFloat(messageTokens[11]),
+					Float.parseFloat(messageTokens[12]),
+					Float.parseFloat(messageTokens[13]),
+					Float.parseFloat(messageTokens[14]),
+					Float.parseFloat(messageTokens[15]),
+					Float.parseFloat(messageTokens[16]),
+					Float.parseFloat(messageTokens[17])
+				);
+
+				ghostManager.rotateGhostMarker(ghostID, markerRotation);
 			}
 
 			// Handle Missile ROTATION message
@@ -410,6 +472,61 @@ public class ProtocolClient extends GameConnectionClient
 			e.printStackTrace();
 		}
 	}
+
+	// ------------- Marker Messages --------------------//
+	public void sendCreateMarkerMessage(Vector3f position)
+	{	try 
+		{	String message = new String("createMarker," + id.toString());
+			message += "," + position.x();
+			message += "," + position.y();
+			message += "," + position.z();
+			
+			sendPacket(message);
+		} catch (IOException e) 
+		{	e.printStackTrace();
+	}	}
+
+	public void sendMoveMarkerMessage(Vector3f position) {
+		try 
+		{	String message = new String("moveMarker," + id.toString());
+			message += "," + position.x();
+			message += "," + position.y();
+			message += "," + position.z();
+			
+			sendPacket(message);
+		} catch (IOException e) 
+		{	e.printStackTrace();
+		}
+	}
+
+	public void sendMarkerRotationMessage(Matrix4f rotation) {
+		try {	
+			String message = new String("rotateMarker," + id.toString());
+			float[] buffer = new float[16];
+			rotation.get(buffer);
+			message += "," + buffer[0];
+			message += "," + buffer[1];
+			message += "," + buffer[2];
+			message += "," + buffer[3];
+			message += "," + buffer[4];
+			message += "," + buffer[5];
+			message += "," + buffer[6];
+			message += "," + buffer[7];
+			message += "," + buffer[8];
+			message += "," + buffer[9];
+			message += "," + buffer[10];
+			message += "," + buffer[11];
+			message += "," + buffer[12];
+			message += "," + buffer[13];
+			message += "," + buffer[14];
+			message += "," + buffer[15];
+
+			sendPacket(message);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
 
 	// ------------- Missile Messages -------------------//
 
