@@ -46,6 +46,7 @@ public class MyGame extends VariableFrameRateGame {
 	private int gameOver = 0;
 	private int frameCounter = 0;
 	private int remainingMissiles = 5;
+	private int remainingMarkers = 5;
 	private int skyBoxID;
 	private double lastFrameTime, currFrameTime, elapsTime;
 	private ArrayList<GameObject> movingObjects = new ArrayList<GameObject>();
@@ -53,11 +54,11 @@ public class MyGame extends VariableFrameRateGame {
 	private ArrayList<GameObject> movingEnemies = new ArrayList<GameObject>();
 	private AnimatedShape enemyShape;
 	private GameObject dol, base, torus, sphere, sphereSatellite, plane, groundPlane,
-			wAxisX, wAxisY, wAxisZ, manual, magnet, missileObj, tower, reloadingStation, bullet;
+			wAxisX, wAxisY, wAxisZ, manual, magnet, missileObj, tower, reloadingStation, bullet, marker;
 	private ObjShape dolS, cubS, torusS, planeS, groundPlaneS, wAxisLineShapeX, wAxisLineShapeY, 
-			wAxisLineShapeZ, manualS, magnetS, worldObj, missileShape, towerS, bulletS;
+			wAxisLineShapeZ, manualS, magnetS, worldObj, missileShape, towerS, bulletS, markerS;
 	private TextureImage doltx, brick, grass, corvette, assignt, enemyTexture, metal, water, 
-			torusWater, fur, terrainTexture, terrainHeightMap, missile, towerTexture, tracer;
+			torusWater, fur, terrainTexture, terrainHeightMap, missile, towerTexture, tracer, bombTex;
 	private Light light1, light2;
 	private Camera myCamera, myViewportCamera;
 	private CameraOrbit3D orbitController;
@@ -72,10 +73,12 @@ public class MyGame extends VariableFrameRateGame {
 	private Sound bugChitterSound;
 
 	private PhysicsEngine physicsEngine;
-	private PhysicsObject bull1, planeP;
+	private PhysicsObject markerP, planeP;
 	public double[] tempTransform;
 
 	private float mass, radius, height;
+	private float[] upPhys = {0,1,0};
+	private float[] gravity = {0f, -5f, 0f};
 
 	private boolean running = false;
 	private float vals[] = new float[16];
@@ -120,6 +123,7 @@ public class MyGame extends VariableFrameRateGame {
 
 	@Override
 	public void loadShapes() {
+		markerS = new ImportedModel("marker.obj");
 		towerS = new ImportedModel("towertest.obj");
 		dolS = new ImportedModel("f15.obj");
 		bulletS = new ImportedModel("bullet.obj");
@@ -148,6 +152,7 @@ public class MyGame extends VariableFrameRateGame {
 
 	@Override
 	public void loadTextures() {
+		bombTex = new TextureImage("bomb.jpg");
 		tracer = new TextureImage("tracer.jpg");
 		doltx = new TextureImage("F15A.jpg");
 		towerTexture = new TextureImage("towertexturetest.jpg");
@@ -186,8 +191,8 @@ public class MyGame extends VariableFrameRateGame {
 		for (int i = 0; i < numEnemies; ++i) {
 			GameObject enemy = new GameObject(GameObject.root(), enemyShape, enemyTexture);
 			double ranAngle = Math.random() * 360;
-			float ranX = (float)Math.cos(ranAngle) * 30.0f;
-			float ranZ = (float)Math.sin(ranAngle) * 30.0f;
+			float ranX = (float)Math.cos(ranAngle) * 25.0f;
+			float ranZ = (float)Math.sin(ranAngle) * 25.0f;
 			initialScale = (new Matrix4f()).scale(0.01f);
 			enemy.setLocalScale(initialScale);
 			initialTranslation = (new Matrix4f()).translation(ranX, bugHeightAdjust, ranZ);
@@ -211,6 +216,8 @@ public class MyGame extends VariableFrameRateGame {
 		Matrix4f initialTranslationT = (new Matrix4f()).translation(0, 0, 0.0f);
 		groundPlane.setLocalTranslation(initialTranslationT);
 		groundPlane.setIsTerrain(true);
+
+
 		
 		// build dolphin in the center of the window
 		dol = new GameObject(GameObject.root(), dolS, doltx);
@@ -295,14 +302,19 @@ public class MyGame extends VariableFrameRateGame {
 		}
 
 		// ---------- Setting up physics ----------
-		float[] gravity = {0f, -5f, 0f};
+		
 		physicsEngine = (engine.getSceneGraph()).getPhysicsEngine();
 		physicsEngine.setGravity(gravity);
 		// --- create physics world ---
-		float mass = 1.0f;
-		float up[] = {0,1,0};
-		float radius = 0.75f;
-		float height = 2.0f;
+		mass = 1.5f;
+		radius = 0.1f;
+		height = 0.1f;
+		Matrix4f translation = new Matrix4f(groundPlane.getLocalTranslation());
+		tempTransform = toDoubleArray(translation.get(vals));
+		planeP = (engine.getSceneGraph()).addPhysicsStaticPlane(
+		tempTransform, upPhys, 0.0f);
+		planeP.setBounciness(.8f);
+		groundPlane.setPhysicsObject(planeP);
 
 		// For debugging physics
 		engine.enableGraphicsWorldRender();
@@ -355,6 +367,7 @@ public class MyGame extends VariableFrameRateGame {
 		// A3 New Actions
 		FireMissileActionK fireMissile = new FireMissileActionK(this, 0.0005f);
 		FireBulletActionK fireBullet = new FireBulletActionK(this, .5f);
+		DropMarkerActionK dropMarker = new DropMarkerActionK(this, .0005f);
 
 		// Bind keyboard keys W, S, A, D, Q, E, UP, DOWN to their actions
 		inputManager.associateActionWithAllKeyboards(
@@ -459,16 +472,20 @@ public class MyGame extends VariableFrameRateGame {
 		inputManager.associateActionWithAllGamepads(
 				net.java.games.input.Component.Identifier.Button._1,
 				fireBullet, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
-		
+
+		inputManager.associateActionWithAllGamepads(
+				net.java.games.input.Component.Identifier.Button._7,
+				dropMarker, InputManager.INPUT_ACTION_TYPE.ON_PRESS_ONLY);
+
 		setupNetworking();
 		printControls();
 	}
 
 	public void setEarParameters()
 	{
-		Camera camera = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
+		myCamera = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
 		audioMgr.getEar().setLocation(dol.getWorldLocation());
-		audioMgr.getEar().setOrientation(camera.getN(), new Vector3f(0.0f, 1.0f, 0.0f));
+		audioMgr.getEar().setOrientation(myCamera.getN(), new Vector3f(0.0f, 1.0f, 0.0f));
 	}
 
 	private float getFramesPerSecond() {
@@ -486,7 +503,7 @@ public class MyGame extends VariableFrameRateGame {
 		String counterStr = Integer.toString(counter);
 		counterStr =  gameOver == 2 ? "Score = " + " You Lose!" : "Score = " + counterStr + " You Win!";
 		// String dispStr1 = "Time = " + elapsTimeStr + " " + elapsedFramesPerSecond;
-		String dispStr1 = "Time: " + elapsTimeStr + ", Missiles: " + remainingMissiles;
+		String dispStr1 = "Time: " + elapsTimeStr + " Missiles: " + remainingMissiles + " Markers: " + remainingMarkers;
 		String dispStr2 = "Pos: " + printVector3f(dol.getWorldLocation());
 		Vector3f hud1Color = new Vector3f(1, 0, 0);
 		Vector3f hud2Color = new Vector3f(0, 0, 1);
@@ -520,7 +537,7 @@ public class MyGame extends VariableFrameRateGame {
 		float elapsedFramesPerSecond = getFramesPerSecond();
 		Vector3f dolcoords = dol.getWorldLocation();
         Vector3f dolFwd = dol.getLocalForwardVector();
-        Vector3f newLocation = dolcoords.add(dolFwd.mul(0.0003f * elapsedFramesPerSecond));
+        Vector3f newLocation = dolcoords.add(dolFwd.mul(0.0006f * elapsedFramesPerSecond));
 		dol.setLocalLocation(newLocation);
 		arrangeHUD(elapsedFramesPerSecond);
 		inputManager.update(elapsedFramesPerSecond);
@@ -529,7 +546,7 @@ public class MyGame extends VariableFrameRateGame {
 		updateMovingObjects(elapsedFramesPerSecond);
 		updateMovingBullets(elapsedFramesPerSecond);
 		
-		avatarGroundCollision();
+		// avatarGroundCollision();
 		protClient.sendRotationMessage(dol.getWorldRotation());
 		protClient.sendMoveMessage(dol.getWorldLocation()); //TODO optimiz?e this message
 		processNetworking((float)elapsTime);
@@ -566,6 +583,8 @@ public class MyGame extends VariableFrameRateGame {
 			bugChitterSound.setLocation(movingEnemies.get(i).getLocalLocation());
 			setEarParameters();
 		}
+		audioMgr.getEar().setLocation(dol.getWorldLocation());
+		audioMgr.getEar().setOrientation(myCamera.getN(), new Vector3f(0.0f, 1.0f, 0.0f));
 	}
 
 	@Override
@@ -594,6 +613,11 @@ public class MyGame extends VariableFrameRateGame {
 				(engine.getRenderSystem().getViewport("MAIN").getCamera()).setLocation(new Vector3f(0, 0, 0));
 				offDolphinCam = true;
 				break;
+			case KeyEvent.VK_5:
+				System.out.println("starting physics");
+				running = true;
+				break;
+
 			// Assignment A2, disable on/off dolphin Camera setting
 			// Camera is now an OrbitController3D and is always off dolphin
 			// case KeyEvent.VK_SPACE:
@@ -727,6 +751,32 @@ public class MyGame extends VariableFrameRateGame {
 		}
 	}
 
+	public void dropMarker(float speed) {
+		if (remainingMarkers > 0) {
+			GameObject markerObject = new GameObject(GameObject.root(), markerS, bombTex);
+			// missileObject.setParent(GameObject.root());
+			Vector3f dolLocation = dol.getWorldLocation();
+			Vector3f dolDirection = dol.getLocalForwardVector();
+	
+			Matrix4f initialTranslation = (new Matrix4f()).translation(dolLocation.x(), dolLocation.y(), dolLocation.z());
+			Matrix4f initialScale = (new Matrix4f()).scaling(0.07f);
+			markerObject.setLocalTranslation(initialTranslation);
+			markerObject.setLocalScale(initialScale);
+			
+			markerObject.setLocalRotation(dol.getLocalRotation());
+			// markerObject.getRenderStates().setModelOrientationCorrection(
+			// (new Matrix4f()).rotationY((float)java.lang.Math.toRadians(90.0f)));
+			
+			markerP = (engine.getSceneGraph()).addPhysicsCapsuleX(mass, tempTransform, radius, height);
+			markerP.setBounciness(0.1f);
+			markerObject.setPhysicsObject(markerP);
+
+			// movingObjects.add(markerObject);
+			protClient.sendCreateMarkerMessage(markerObject.getWorldLocation());
+			// --remainingMarkers;
+		}
+	}
+
 	public void fireMissile(float speed) {
 		if (remainingMissiles > 0) {
 			GameObject missileObject = new GameObject(GameObject.root(), missileShape, missile);
@@ -758,9 +808,6 @@ public class MyGame extends VariableFrameRateGame {
 		bulletObject.setLocalTranslation(initialTranslation);
 		bulletObject.setLocalScale(initialScale);
 		bulletObject.setLocalRotation(dol.getLocalRotation());
-		bull1 = (engine.getSceneGraph()).addPhysicsCapsuleX(mass, tempTransform, radius, height);
-		bull1.setBounciness(0.01f);
-		bullet.setPhysicsObject(bull1);
 		movingBullets.add(bulletObject);
 		protClient.sendCreateBulletMessage(bulletObject.getWorldLocation());
 	}
@@ -906,6 +953,8 @@ private double[] toDoubleArray(float[] arr) {
 
 	public ObjShape getGhostShape() { return dolS; }
 	public TextureImage getGhostTexture() { return doltx; }
+	public ObjShape getMarkerShape() { return markerS; }
+	public TextureImage getMarkerTexture() { return bombTex; }
 	public ObjShape getMissileShape() { return missileShape; }
 	public TextureImage getMissileTexture() { return missile; }
 	public ObjShape getBulletShape() { return bulletS ;}
