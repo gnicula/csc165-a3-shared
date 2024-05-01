@@ -12,6 +12,7 @@ import tage.networking.IGameConnection.ProtocolType;
 import tage.nodeControllers.RotationController;
 import tage.nodeControllers.StretchController;
 import net.java.games.input.Controller;
+import tage.audio.*;
 
 import java.util.ArrayList;
 import java.util.ListIterator;
@@ -59,6 +60,9 @@ public class MyGame extends VariableFrameRateGame {
 	private Vector3f forward; // n-vector/z-axis
 	private Vector3f up; // v-vector/y-axis
 	private Vector3f right; // u-vector/x-axis
+
+	private IAudioManager audioMgr;
+	private Sound bugChitterSound;
 
 	private GhostManager gm;
 	private String serverAddress;
@@ -148,6 +152,20 @@ public class MyGame extends VariableFrameRateGame {
 		fur = new TextureImage("fur1.jpg");
 	}
 
+	@Override
+	public void loadSounds() {
+		AudioResource bugSoundResource;
+		audioMgr = engine.getAudioManager();
+		//https://www.youtube.com/watch?v=CUdUsJS8bgw "Creepy Alien Bug Sound Effect" - Sound Effect Database
+		bugSoundResource = audioMgr.createAudioResource("assets/sounds/creepy_alien.wav", AudioResourceType.AUDIO_SAMPLE);
+		bugChitterSound = new Sound(bugSoundResource, SoundType.SOUND_EFFECT, 100, true);
+		bugChitterSound.initialize(audioMgr);
+		bugChitterSound.setMaxDistance(15.0f);
+		bugChitterSound.setMinDistance(0.01f);
+		bugChitterSound.setRollOff(5.0f);
+
+	}
+
 	public void buildEnemyObjects(int numEnemies) {
 		Matrix4f initialTranslation, initialScale;
 		for (int i = 0; i < numEnemies; ++i) {
@@ -201,54 +219,6 @@ public class MyGame extends VariableFrameRateGame {
 		Matrix4f initialScaleM = (new Matrix4f()).scaling(0.25f);
 		reloadingStation.setLocalTranslation(initialTranslationM);
 		reloadingStation.setLocalScale(initialScaleM);
-
-		// A2 requirement - add a hierarchical relationship
-		// GameObject cubSatellite = new GameObject(cub, imported, fur);
-		// cubSatellite.getRenderStates().setTiling(1);
-		// cubSatellite.setLocalScale((new Matrix4f()).scaling(0.25f));
-		// cubSatellite.setLocalTranslation((new Matrix4f()).translation(0.75f, 0.5f, 0));
-		// cubSatellite.propagateTranslation(true);
-		// cubSatellite.propagateRotation(true);
-		// cubSatellite.applyParentRotationToPosition(true);
-
-		// build a watery torus at the left side of the window
-		// torus = new GameObject(GameObject.root(), torusS, torusWater);
-		// torus.getRenderStates().setTiling(1);
-		// initialTranslationTorus = (new Matrix4f()).translation(-4, 0.11f, -4);
-		// initialScaleTorus = (new Matrix4f()).scaling(0.5f);
-		// torus.setLocalTranslation(initialTranslationTorus);
-		// torus.setLocalScale(initialScaleTorus);
-
-
-		// build a sphere logo textured at the right side of the window
-		// sphere = new GameObject(GameObject.root(), sphereS, corvette);
-		// initialTranslationSphere = (new Matrix4f()).translation(4, 0.2f, 4);
-		// initialScaleSphere = (new Matrix4f()).scaling(0.5f);
-		// sphere.setLocalTranslation(initialTranslationSphere);
-		// sphere.setLocalScale(initialScaleSphere);
-		// now create a example of a hierarchical relationship by adding 
-		// a smaller sphereSatellite to our sphere object.
-		// sphereSatellite = new GameObject(sphere, sphereS, grass);
-		// sphereSatellite.setLocalScale((new Matrix4f()).scaling(0.25f));
-		// sphereSatellite.setLocalTranslation((new Matrix4f()).translation(0.75f, 0.5f, 0));
-		// sphereSatellite.propagateTranslation(true);
-		// sphereSatellite.propagateRotation(true);
-		// sphereSatellite.applyParentRotationToPosition(true);
-
-		// build a plane textured at the left side of the window
-		// plane = new GameObject(GameObject.root(), planeS, assignt);
-		// initialTranslationPlane = (new Matrix4f()).translation(-4, .01f, 4);
-		// initialScalePlane = (new Matrix4f()).scaling(0.75f);
-		// plane.setLocalTranslation(initialTranslationPlane);
-		// plane.setLocalScale(initialScalePlane);
-
-		// build my manual object
-		// manual = new GameObject(GameObject.root(), manualS, gold);
-		// initialTranslationManual = (new Matrix4f()).translation(0, 1.75f, -4);
-		// initialScaleManual = (new Matrix4f()).scaling(0.4f);
-		// manual.setLocalTranslation(initialTranslationManual);
-		// manual.setLocalScale(initialScaleManual);
-		// manual.getRenderStates().hasLighting(true);	
 
 		buildEnemyObjects(5);
 
@@ -310,6 +280,13 @@ public class MyGame extends VariableFrameRateGame {
 			// if (controller.getType().toString() == "Gamepad") {
 			// 	gamepadName = controller.getName();
 			// }
+		}
+
+		// ---------- Setting up sound -----------
+		for (int i = 0; i < movingEnemies.size(); ++i) {
+			bugChitterSound.setLocation(movingEnemies.get(i).getWorldLocation());
+			setEarParameters();
+			bugChitterSound.play();
 		}
 
 		// ------------- positioning the camera -------------
@@ -480,6 +457,13 @@ public class MyGame extends VariableFrameRateGame {
 		// ((AnimatedShape)dolS).playAnimation("WALK", 0.5f, AnimatedShape.EndType.LOOP, 0);
 	}
 
+	public void setEarParameters()
+	{
+		Camera camera = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
+		audioMgr.getEar().setLocation(dol.getWorldLocation());
+		audioMgr.getEar().setOrientation(camera.getN(), new Vector3f(0.0f, 1.0f, 0.0f));
+	}
+
 	private float getFramesPerSecond() {
 		return (float) (frameCounter / elapsTime);
 	}
@@ -547,6 +531,12 @@ public class MyGame extends VariableFrameRateGame {
 		// float heightOffset = groundPlane.getHeight(0, 0);
 		
 		// System.out.println(dolcoords.x() + " " + dolcoords.y() + " " + dolcoords.z());
+
+		// update sound
+		for (int i = 0; i < movingEnemies.size(); ++i) {
+			bugChitterSound.setLocation(movingEnemies.get(i).getWorldLocation());
+			setEarParameters();
+		}
 	}
 
 	@Override
