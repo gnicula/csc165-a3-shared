@@ -102,6 +102,22 @@ public class ProtocolClient extends GameConnectionClient
 				}
 			}
 
+			if (messageTokens[0].compareTo("createBullet") == 0)
+			{
+				UUID bulletId = UUID.fromString(messageTokens[1]);
+
+				Vector3f bulletPosition = new Vector3f(
+					Float.parseFloat(messageTokens[2]),
+					Float.parseFloat(messageTokens[3]),
+					Float.parseFloat(messageTokens[4]));
+				
+				try {
+					ghostManager.createGhostBullet(bulletId, bulletPosition);
+				} catch (IOException e) {
+					System.out.println("Error creating ghost bullet");
+				}
+			}
+
 			// Handle Missile MOVE message
 			// Format: (move,remoteId,x,y,z)
 			if (messageTokens[0].compareTo("moveMissile") == 0)
@@ -117,6 +133,23 @@ public class ProtocolClient extends GameConnectionClient
 					Float.parseFloat(messageTokens[4]));
 				
 				ghostManager.updateGhostMissile(ghostID, missilePosition);
+			}
+
+			// Handle Bullet MOVE message
+			// Format: (move,remoteId,x,y,z)
+			if (messageTokens[0].compareTo("moveBullet") == 0)
+			{
+				// Move a bullet
+				// Parse out the id into a UUID
+				UUID ghostID = UUID.fromString(messageTokens[1]);
+
+				// Parse out the position into a Vector3f
+				Vector3f bulletPosition = new Vector3f(
+					Float.parseFloat(messageTokens[2]),
+					Float.parseFloat(messageTokens[3]),
+					Float.parseFloat(messageTokens[4]));
+				
+				ghostManager.updateGhostBullet(ghostID, bulletPosition);
 			}
 
 			// Handle Missile ROTATION message
@@ -148,6 +181,35 @@ public class ProtocolClient extends GameConnectionClient
 				ghostManager.rotateGhostMissile(ghostID, missileRotation);
 			}
 
+			// Handle Bullet ROTATION message
+			// Format: (rotate, remoteId,a00,a01,a02,a03,a10,a11 ...)
+
+			if (messageTokens[0].compareTo("rotateBullet") == 0) {
+				UUID ghostID = UUID.fromString(messageTokens[1]);
+				float[][] values = new float[4][4];
+				
+				// Parse out the position into a Matrix4f
+				Matrix4f bulletRotation = new Matrix4f(
+					Float.parseFloat(messageTokens[2]),
+					Float.parseFloat(messageTokens[3]),
+					Float.parseFloat(messageTokens[4]),
+					Float.parseFloat(messageTokens[5]),
+					Float.parseFloat(messageTokens[6]),
+					Float.parseFloat(messageTokens[7]),
+					Float.parseFloat(messageTokens[8]),
+					Float.parseFloat(messageTokens[9]),
+					Float.parseFloat(messageTokens[10]),
+					Float.parseFloat(messageTokens[11]),
+					Float.parseFloat(messageTokens[12]),
+					Float.parseFloat(messageTokens[13]),
+					Float.parseFloat(messageTokens[14]),
+					Float.parseFloat(messageTokens[15]),
+					Float.parseFloat(messageTokens[16]),
+					Float.parseFloat(messageTokens[17])
+				);
+
+				ghostManager.rotateGhostBullet(ghostID, bulletRotation);
+			}
 
 			// Handle WANTS_DETAILS message
 			// Format: (wsds,remoteId)
@@ -379,6 +441,60 @@ public class ProtocolClient extends GameConnectionClient
 	public void sendMissileRotationMessage(Matrix4f rotation) {
 		try {	
 			String message = new String("rotateMissile," + id.toString());
+			float[] buffer = new float[16];
+			rotation.get(buffer);
+			message += "," + buffer[0];
+			message += "," + buffer[1];
+			message += "," + buffer[2];
+			message += "," + buffer[3];
+			message += "," + buffer[4];
+			message += "," + buffer[5];
+			message += "," + buffer[6];
+			message += "," + buffer[7];
+			message += "," + buffer[8];
+			message += "," + buffer[9];
+			message += "," + buffer[10];
+			message += "," + buffer[11];
+			message += "," + buffer[12];
+			message += "," + buffer[13];
+			message += "," + buffer[14];
+			message += "," + buffer[15];
+
+			sendPacket(message);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	// ------------ Bullet Messages -------------
+	public void sendCreateBulletMessage(Vector3f position)
+	{	try 
+		{	String message = new String("createBullet," + id.toString());
+			message += "," + position.x();
+			message += "," + position.y();
+			message += "," + position.z();
+			
+			sendPacket(message);
+		} catch (IOException e) 
+		{	e.printStackTrace();
+	}	}
+
+	public void sendMoveBulletMessage(Vector3f position) {
+		try 
+		{	String message = new String("moveBullet," + id.toString());
+			message += "," + position.x();
+			message += "," + position.y();
+			message += "," + position.z();
+			
+			sendPacket(message);
+		} catch (IOException e) 
+		{	e.printStackTrace();
+		}
+	}
+
+	public void sendBulletRotationMessage(Matrix4f rotation) {
+		try {	
+			String message = new String("rotateBullet," + id.toString());
 			float[] buffer = new float[16];
 			rotation.get(buffer);
 			message += "," + buffer[0];

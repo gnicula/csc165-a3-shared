@@ -18,6 +18,7 @@ public class GhostManager
 	private HashMap<UUID, GhostAvatar> ghostAvatars = new HashMap<UUID, GhostAvatar>();
 	private HashMap<UUID, GhostNPC> ghostNPCS = new HashMap<UUID, GhostNPC>();
 	private HashMap<UUID, GhostMissile> ghostMissiles = new HashMap<UUID, GhostMissile>();
+	private HashMap<UUID, GhostBullet> ghostBullets = new HashMap<UUID, GhostBullet>();
 
 	public GhostManager(VariableFrameRateGame vfrg)
 	{	game = (MyGame)vfrg;
@@ -95,6 +96,35 @@ public class GhostManager
 		}
 		else
 		{	System.out.println("tried to update ghost missile rotation, but unable to find ghost in list");
+		}
+	}
+
+	public void createGhostBullet(UUID id, Vector3f position) throws IOException
+	{
+		ObjShape bullet = game.getBulletShape();
+		TextureImage bulletTexture = game.getBulletTexture();
+		GhostBullet newBullet = new GhostBullet(id, bullet, bulletTexture, position);
+		Matrix4f initialScale = (new Matrix4f().scaling(.01f));
+		newBullet.setLocalScale(initialScale);
+		ghostBullets.put(id, newBullet);
+	}
+
+	public void updateGhostBullet(UUID id, Vector3f position)
+	{
+		GhostBullet ghostBullet = ghostBullets.get(id);
+		if (ghostBullet != null) {
+			ghostBullet.setPosition(position);
+		} else {
+			System.out.println("Tried to update ghost bullet position, but unable to find ghost in list.");
+		}
+	}
+
+	public void rotateGhostBullet(UUID id, Matrix4f rotate) {
+		GhostBullet ghostBullet = ghostBullets.get(id);
+		if (ghostBullet != null) {
+			ghostBullet.setRotation(rotate);
+		} else {
+			System.out.println("Tried to update ghost bullet rotation, but unable to find ghost in list.");
 		}
 	}
 
