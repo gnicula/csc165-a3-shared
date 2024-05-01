@@ -45,9 +45,10 @@ public class MyGame extends VariableFrameRateGame {
 	private double lastFrameTime, currFrameTime, elapsTime;
 	private ArrayList<GameObject> movingObjects = new ArrayList<GameObject>();
 	private ArrayList<GameObject> movingEnemies = new ArrayList<GameObject>();
+	private AnimatedShape enemyShape;
 	private GameObject dol, base, torus, sphere, sphereSatellite, plane, groundPlane,
 			wAxisX, wAxisY, wAxisZ, manual, magnet, missileObj, tower, reloadingStation;
-	private ObjShape dolS, cubS, torusS, enemyShape, planeS, groundPlaneS, wAxisLineShapeX, wAxisLineShapeY, 
+	private ObjShape dolS, cubS, torusS, planeS, groundPlaneS, wAxisLineShapeX, wAxisLineShapeY, 
 			wAxisLineShapeZ, manualS, magnetS, worldObj, missileShape, towerS;
 	private TextureImage doltx, brick, grass, corvette, assignt, enemyTexture, metal, water, 
 			torusWater, fur, terrainTexture, terrainHeightMap, missile, towerTexture;
@@ -74,6 +75,7 @@ public class MyGame extends VariableFrameRateGame {
 	private final int WindowSizeX = 2000;
 	private final int WindowSizeY = 1000;
 
+	private float bugHeightAdjust = 0.5f;
 	
 	public MyGame(String serverAddress, int serverPort, String protocol)
 	{	super();
@@ -108,7 +110,9 @@ public class MyGame extends VariableFrameRateGame {
 		// ((AnimatedShape)dolS).loadAnimation("WALK", "drone_flying.rka");
 		cubS = new Cube();
 		// torusS = new Torus();
-		enemyShape = new Sphere();
+		enemyShape = new AnimatedShape("bugarino.rkm", "bugarino.rks");
+		enemyShape.loadAnimation("WALK", "bugarino_walk.rka");
+		enemyShape.loadAnimation("IDLE", "bugarino_idle.rka");
 		// planeS = new Plane();
 		// groundPlaneS = new Plane();
 		System.out.println("about to load terrain shape");
@@ -139,7 +143,7 @@ public class MyGame extends VariableFrameRateGame {
 		grass = new TextureImage("grass1.jpg");
 		corvette = new TextureImage("corvette1.jpg");
 		assignt = new TextureImage("assign1.png");
-		enemyTexture = new TextureImage("gold1.jpg");
+		enemyTexture = new TextureImage("bug_uv.png");
 		metal = new TextureImage("magnet1.jpg");
 		missile = new TextureImage("missile.jpg");
 		// https://www.pexels.com/photo/body-of-water-261403/
@@ -173,10 +177,13 @@ public class MyGame extends VariableFrameRateGame {
 			double ranAngle = Math.random() * 360;
 			float ranX = (float)Math.cos(ranAngle) * 30.0f;
 			float ranZ = (float)Math.sin(ranAngle) * 30.0f;
-			initialScale = (new Matrix4f()).scale(0.5f);
+			initialScale = (new Matrix4f()).scale(0.01f);
 			enemy.setLocalScale(initialScale);
-			initialTranslation = (new Matrix4f()).translation(ranX, 0, ranZ);
+			initialTranslation = (new Matrix4f()).translation(ranX, bugHeightAdjust, ranZ);
 			enemy.setLocalTranslation(initialTranslation);
+			enemy.getRenderStates().setModelOrientationCorrection(new Matrix4f().rotationY((float)java.lang.Math.toRadians(-90.0f)));
+			//enemy.getRenderStates().hasLighting(true);
+			//enemy.getRenderStates().isEnvironmentMapped(true);
 			movingEnemies.add(enemy);
 		}
 	}
@@ -509,6 +516,8 @@ public class MyGame extends VariableFrameRateGame {
 		if (!paused) {
 			elapsTime += (currFrameTime - lastFrameTime) / 1000.0;
 		}
+		
+		
 
 		float elapsedFramesPerSecond = getFramesPerSecond();
 		Vector3f dolcoords = dol.getWorldLocation();
@@ -724,6 +733,8 @@ public class MyGame extends VariableFrameRateGame {
 	}
 
 	private void updateMovingObjects(float elapsedFramesPerSecond) {
+		enemyShape.playAnimation("WALK", 0.2f, AnimatedShape.EndType.LOOP, 0);
+		enemyShape.updateAnimation();
 		// First perform the scheduled object moves
 		for (GameObject go: movingObjects) {
 			go.moveForwardBack(0.001f*elapsedFramesPerSecond, new Vector3f());
@@ -735,6 +746,8 @@ public class MyGame extends VariableFrameRateGame {
 			go.moveForwardBack(0.0001f*elapsedFramesPerSecond, new Vector3f());
 			setObjectHeightAtLocation(go);
 			if (go.getWorldLocation().sub(base.getWorldLocation()).length() < 0.1) {
+				enemyShape.stopAnimation();
+				enemyShape.playAnimation("IDLE", 0.2f, AnimatedShape.EndType.LOOP, 0);
 				gameOver = 2;
 			}
 		}
@@ -772,7 +785,7 @@ public class MyGame extends VariableFrameRateGame {
 	public void setObjectHeightAtLocation(GameObject go) {
 		Vector3f loc = go.getWorldLocation();
 		float height = groundPlane.getHeight(loc.x(), loc.z());
-		go.setLocalLocation(new Vector3f(loc.x(), height, loc.z()));
+		go.setLocalLocation(new Vector3f(loc.x(), height + bugHeightAdjust, loc.z()));
 	}
 
 	private void checkForMissileReloading() {
