@@ -18,7 +18,11 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 	{
 		String message = (String)o;
 		String[] messageTokens = message.split(",");
-		
+		if (message.isEmpty()) {
+			System.out.println("Message: " + message);
+			System.exit(0);
+		}
+
 		if(messageTokens.length > 0)
 		{	// JOIN -- Case where client just joined the server
 			// Received Message Format: (join,localId)
@@ -52,7 +56,25 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 				sendCreateMessages(clientID, pos);
 				sendWantsDetailsMessages(clientID);
 			}
-			
+
+			// CREATE -- Case where server receives a create message (to specify avatar location)
+			// Received Message Format: (create,localId,x,y,z)
+			if(messageTokens[0].compareTo("createMarker") == 0)
+			{	UUID clientID = UUID.fromString(messageTokens[1]);
+				String[] pos = {messageTokens[2], messageTokens[3], messageTokens[4]};
+				sendCreateMarkerMessages(clientID, pos);
+				// sendWantsDetailsMessages(clientID);
+			}
+
+			// CREATE -- Case where server receives a create message (to specify avatar location)
+			// Received Message Format: (create,localId,x,y,z)
+			if(messageTokens[0].compareTo("createBullet") == 0)
+			{	UUID clientID = UUID.fromString(messageTokens[1]);
+				String[] pos = {messageTokens[2], messageTokens[3], messageTokens[4]};
+				sendCreateBulletMessages(clientID, pos);
+				// sendWantsDetailsMessages(clientID);
+			}
+
 			// CREATE -- Case where server receives a create message (to specify avatar location)
 			// Received Message Format: (create,localId,x,y,z)
 			if(messageTokens[0].compareTo("createMissile") == 0)
@@ -60,6 +82,32 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 				String[] pos = {messageTokens[2], messageTokens[3], messageTokens[4]};
 				sendCreateMissileMessages(clientID, pos);
 				// sendWantsDetailsMessages(clientID);
+			}
+
+			// MOVE --- Case where server receives a move message
+			// Received Message Format: (move,localId,x,y,z)
+			if(messageTokens[0].compareTo("moveMarker") == 0)
+			{	UUID clientID = UUID.fromString(messageTokens[1]);
+				String[] pos = {messageTokens[2], messageTokens[3], messageTokens[4]};
+				sendMoveMarkerMessage(clientID, pos);
+			}
+
+			if(messageTokens[0].compareTo("rotateMarker") == 0)
+			{	UUID clientID = UUID.fromString(messageTokens[1]);
+				sendRotateMarkerMessages(clientID, message);
+			}
+
+			// MOVE --- Case where server receives a move message
+			// Received Message Format: (move,localId,x,y,z)
+			if(messageTokens[0].compareTo("moveBullet") == 0)
+			{	UUID clientID = UUID.fromString(messageTokens[1]);
+				String[] pos = {messageTokens[2], messageTokens[3], messageTokens[4]};
+				sendMoveBulletMessage(clientID, pos);
+			}
+
+			if(messageTokens[0].compareTo("rotateBullet") == 0)
+			{	UUID clientID = UUID.fromString(messageTokens[1]);
+				sendRotateBulletMessages(clientID, message);
 			}
 
 			// MOVE --- Case where server receives a move message
@@ -154,7 +202,77 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 		catch (IOException e) 
 		{	e.printStackTrace();
 	}	}
-	
+
+	public void sendCreateMarkerMessages(UUID clientID, String[] position)
+	{	try 
+		{	String message = new String("createMarker," + clientID.toString());
+			message += "," + position[0];
+			message += "," + position[1];
+			message += "," + position[2];	
+			forwardPacketToAll(message, clientID);
+		} 
+		catch (IOException e) 
+		{	e.printStackTrace();
+	}	}
+
+	public void sendMoveMarkerMessage(UUID clientID, String[] position) {
+		try {
+			String message = new String("moveMarker," + clientID.toString());
+			message += "," + position[0];
+			message += "," + position[1];
+			message += "," + position[2];
+			forwardPacketToAll(message, clientID);
+		} 
+		catch (IOException e) 
+		{	e.printStackTrace();
+		}
+		
+	}
+
+	public void sendRotateMarkerMessages(UUID clientID, String message)
+	{
+		try {
+			forwardPacketToAll(message, clientID);
+		} catch (IOException e) 
+		{	e.printStackTrace();
+		}
+	}
+
+	public void sendCreateBulletMessages(UUID clientID, String[] position)
+	{	try 
+		{	String message = new String("createBullet," + clientID.toString());
+			message += "," + position[0];
+			message += "," + position[1];
+			message += "," + position[2];	
+			forwardPacketToAll(message, clientID);
+		} 
+		catch (IOException e) 
+		{	e.printStackTrace();
+	}	}
+
+	public void sendMoveBulletMessage(UUID clientID, String[] position) {
+		try {
+			String message = new String("moveBullet," + clientID.toString());
+			message += "," + position[0];
+			message += "," + position[1];
+			message += "," + position[2];
+			forwardPacketToAll(message, clientID);
+		} 
+		catch (IOException e) 
+		{	e.printStackTrace();
+		}
+		
+	}
+
+	public void sendRotateBulletMessages(UUID clientID, String message)
+	{
+		try {
+			forwardPacketToAll(message, clientID);
+		} catch (IOException e) 
+		{	e.printStackTrace();
+		}
+	}
+
 	public void sendCreateMissileMessages(UUID clientID, String[] position)
 	{	try 
 		{	String message = new String("createMissile," + clientID.toString());

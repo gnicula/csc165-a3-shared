@@ -33,7 +33,7 @@ public class ProtocolClient extends GameConnectionClient
 	protected void processPacket(Object message)
 	{	String strMessage = (String)message;
 		System.out.println("message received -->" + strMessage);
-		if (strMessage == null && !strMessage.trim().isEmpty()) {
+		if (strMessage == null) { // || strMessage.trim().isEmpty()) {
 			return;
 		}
 		String[] messageTokens = strMessage.split(",");

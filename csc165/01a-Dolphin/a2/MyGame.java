@@ -52,6 +52,7 @@ public class MyGame extends VariableFrameRateGame {
 	private ArrayList<GameObject> movingObjects = new ArrayList<GameObject>();
 	private ArrayList<GameObject> movingBullets = new ArrayList<GameObject>();
 	private ArrayList<GameObject> movingEnemies = new ArrayList<GameObject>();
+	private ArrayList<GameObject> movingMarkers = new ArrayList<GameObject>();
 	private AnimatedShape enemyShape;
 	private GameObject dol, base, torus, sphere, sphereSatellite, plane, groundPlane,
 			wAxisX, wAxisY, wAxisZ, manual, magnet, missileObj, tower, reloadingStation, bullet, marker;
@@ -74,13 +75,14 @@ public class MyGame extends VariableFrameRateGame {
 
 	private PhysicsEngine physicsEngine;
 	private PhysicsObject markerP, planeP;
+	private ArrayList<PhysicsObject> groundTiles = new ArrayList<PhysicsObject>();
 	public double[] tempTransform;
 
 	private float mass, radius, height;
 	private float[] upPhys = {0,1,0};
 	private float[] gravity = {0f, -5f, 0f};
 
-	private boolean running = false;
+	private boolean running = true;
 	private float vals[] = new float[16];
 
 	private GhostManager gm;
@@ -306,15 +308,12 @@ public class MyGame extends VariableFrameRateGame {
 		physicsEngine = (engine.getSceneGraph()).getPhysicsEngine();
 		physicsEngine.setGravity(gravity);
 		// --- create physics world ---
-		mass = 1.5f;
-		radius = 0.1f;
-		height = 0.1f;
-		Matrix4f translation = new Matrix4f(groundPlane.getLocalTranslation());
+		Matrix4f translation = (new Matrix4f()).translate(0, 10, 0);
 		tempTransform = toDoubleArray(translation.get(vals));
 		planeP = (engine.getSceneGraph()).addPhysicsStaticPlane(
 		tempTransform, upPhys, 0.0f);
 		planeP.setBounciness(.8f);
-		groundPlane.setPhysicsObject(planeP);
+		// groundPlane.setPhysicsObject(planeP);
 
 		// For debugging physics
 		engine.enableGraphicsWorldRender();
@@ -764,13 +763,28 @@ public class MyGame extends VariableFrameRateGame {
 			markerObject.setLocalScale(initialScale);
 			
 			markerObject.setLocalRotation(dol.getLocalRotation());
+			movingMarkers.add(markerObject);
 			// markerObject.getRenderStates().setModelOrientationCorrection(
-			// (new Matrix4f()).rotationY((float)java.lang.Math.toRadians(90.0f)));
-			
-			markerP = (engine.getSceneGraph()).addPhysicsCapsuleX(mass, tempTransform, radius, height);
+			// 	(new Matrix4f()).rotationY((float)java.lang.Math.toRadians(270.0f)));
+				
+			// Convert avatar transform to double array
+			tempTransform = toDoubleArray(initialTranslation.rotateY(
+				(float)java.lang.Math.toRadians(270.0f)).get(vals));
+			mass = 1.5f;
+			radius = 0.1f;
+			height = 0.25f;
+			markerP = (engine.getSceneGraph()).addPhysicsCapsule(mass, tempTransform, radius, height);
 			markerP.setBounciness(0.1f);
 			markerObject.setPhysicsObject(markerP);
 
+			// Now create the terrain counterpart physics object
+			tempTransform = toDoubleArray((new Matrix4f()).translation(dolLocation.x(),
+				groundPlane.getHeight(dolLocation.x(), dolLocation.z()), dolLocation.z()).get(vals));
+
+			// public PhysicsObject addPhysicsCylinder(float mass, double[] transform, float radius, float height)			
+			PhysicsObject cylinderP = (engine.getSceneGraph()).addPhysicsCylinder(
+				0.0f, tempTransform, radius, height/5);
+			groundTiles.add(cylinderP);
 			// movingObjects.add(markerObject);
 			protClient.sendCreateMarkerMessage(markerObject.getWorldLocation());
 			// --remainingMarkers;
@@ -849,6 +863,12 @@ public class MyGame extends VariableFrameRateGame {
 			go.moveForwardBack(0.002f*elapsedFramesPerSecond, new Vector3f());
 			protClient.sendMoveMissileMessage(go.getWorldLocation());
 			protClient.sendMissileRotationMessage(go.getWorldRotation());
+			
+		}
+		for (GameObject go: movingMarkers) {
+			go.moveForwardBack(0.002f*elapsedFramesPerSecond, new Vector3f());
+			protClient.sendMoveMarkerMessage(go.getWorldLocation());
+			protClient.sendMarkerRotationMessage(go.getWorldRotation());
 			
 		}
 		for (GameObject go: movingEnemies) {
