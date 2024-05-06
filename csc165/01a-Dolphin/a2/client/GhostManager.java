@@ -135,7 +135,7 @@ public class GhostManager
 		ObjShape bullet = game.getBulletShape();
 		TextureImage bulletTexture = game.getBulletTexture();
 		GhostBullet newBullet = new GhostBullet(id, bullet, bulletTexture, position);
-		Matrix4f initialScale = (new Matrix4f().scaling(.01f));
+		Matrix4f initialScale = (new Matrix4f().scaling(.3f));
 		newBullet.setLocalScale(initialScale);
 		ghostBullets.put(id, newBullet);
 	}
