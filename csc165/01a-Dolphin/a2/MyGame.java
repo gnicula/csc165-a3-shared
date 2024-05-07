@@ -16,6 +16,7 @@ import tage.audio.*;
 import tage.physics.PhysicsEngine;
 import tage.physics.PhysicsObject;
 import tage.physics.JBullet.*;
+
 import com.bulletphysics.dynamics.RigidBody;
 import com.bulletphysics.collision.dispatch.CollisionObject;
 
@@ -41,6 +42,7 @@ public class MyGame extends VariableFrameRateGame {
 	private boolean paused = false;
 	private boolean offDolphinCam = true; // default camera off dolphin
 	private boolean axesRenderState = true;
+	private boolean inSelectionScreen = true;
 	private boolean[] visitedSites = new boolean[4]; // default initialized to false
 	private int counter = 0;
 	private int gameOver = 0;
@@ -48,21 +50,23 @@ public class MyGame extends VariableFrameRateGame {
 	private int remainingMissiles = 5;
 	private int remainingMarkers = 5;
 	private int skyBoxID;
+	private int selectedAvatar = 1;
 	private double lastFrameTime, currFrameTime, elapsTime;
 	private ArrayList<GameObject> movingObjects = new ArrayList<GameObject>();
 	private ArrayList<GameObject> movingBullets = new ArrayList<GameObject>();
 	private ArrayList<GameObject> movingEnemies = new ArrayList<GameObject>();
 	private ArrayList<GameObject> movingMarkers = new ArrayList<GameObject>();
 	private AnimatedShape enemyShape;
-	private GameObject dol, base, torus, sphere, sphereSatellite, plane, groundPlane,
+	private GameObject dol, selectAvatar1, selectAvatar2, base, torus, sphere, sphereSatellite, plane, groundPlane,
 			wAxisX, wAxisY, wAxisZ, manual, magnet, missileObj, tower, reloadingStation, bullet, marker;
 	private ObjShape dolS, cubS, torusS, planeS, groundPlaneS, wAxisLineShapeX, wAxisLineShapeY, 
 			wAxisLineShapeZ, manualS, magnetS, worldObj, missileShape, towerS, bulletS, markerS;
-	private TextureImage doltx, brick, grass, corvette, assignt, enemyTexture, metal, water, 
+	private TextureImage doltx1, doltx2, brick, grass, corvette, assignt, enemyTexture, metal, water, 
 			torusWater, fur, terrainTexture, terrainHeightMap, missile, towerTexture, tracer, bombTex;
 	private Light light1, light2;
 	private Camera myCamera, myViewportCamera;
 	private CameraOrbit3D orbitController;
+	private NodeController selectionRotateController;
 	private ArrayList<NodeController> controllerArr = new ArrayList<NodeController>();
 	private InputManager inputManager;
 	private Vector3f location; // world object location
@@ -71,7 +75,7 @@ public class MyGame extends VariableFrameRateGame {
 	private Vector3f right; // u-vector/x-axis
 
 	private IAudioManager audioMgr;
-	private Sound bugChitterSound;
+	private Sound bugChitterSound, selectAvatarSound;
 
 	private PhysicsEngine physicsEngine;
 	private PhysicsObject markerP, planeP;
@@ -156,7 +160,8 @@ public class MyGame extends VariableFrameRateGame {
 	public void loadTextures() {
 		bombTex = new TextureImage("bomb.jpg");
 		tracer = new TextureImage("tracer.jpg");
-		doltx = new TextureImage("F15A.jpg");
+		doltx1 = new TextureImage("F15A.jpg");
+		doltx2 = new TextureImage("F15F.jpg");
 		towerTexture = new TextureImage("towertexturetest.jpg");
 		grass = new TextureImage("grass1.jpg");
 		corvette = new TextureImage("corvette1.jpg");
@@ -178,13 +183,20 @@ public class MyGame extends VariableFrameRateGame {
 	public void loadSounds() {
 		AudioResource bugSoundResource;
 		audioMgr = engine.getAudioManager();
-		//https://www.youtube.com/watch?v=CUdUsJS8bgw "Creepy Alien Bug Sound Effect" - Sound Effect Database
+		// https://www.youtube.com/watch?v=CUdUsJS8bgw "Creepy Alien Bug Sound Effect" - Sound Effect Database
 		bugSoundResource = audioMgr.createAudioResource("assets/sounds/creepy_alien.wav", AudioResourceType.AUDIO_SAMPLE);
 		bugChitterSound = new Sound(bugSoundResource, SoundType.SOUND_EFFECT, 25, true);
 		bugChitterSound.initialize(audioMgr);
 		bugChitterSound.setMaxDistance(8.0f);
 		bugChitterSound.setMinDistance(0.1f);
 		bugChitterSound.setRollOff(10.0f);
+
+		// https://opengameart.org/content/toom-click - CC BY 4.0 DEED
+		AudioResource selectAvatarSoundResource = audioMgr.createAudioResource(
+			"assets/sounds/toom_click.wav", AudioResourceType.AUDIO_SAMPLE);
+		selectAvatarSound = new Sound(
+			selectAvatarSoundResource, SoundType.SOUND_EFFECT, 35, false);
+		selectAvatarSound.initialize(audioMgr);
 
 	}
 
@@ -219,10 +231,21 @@ public class MyGame extends VariableFrameRateGame {
 		groundPlane.setLocalTranslation(initialTranslationT);
 		groundPlane.setIsTerrain(true);
 
+		// build avatar selection
+		selectAvatar1 = new GameObject(GameObject.root(), dolS, doltx1);
+		selectAvatar1.setLocalTranslation((new Matrix4f()).translation(-0.5f, 15.25f, 0.25f));
+		selectAvatar1.setLocalScale((new Matrix4f()).scaling(0.1f));
+		selectAvatar1.getRenderStates()
+				.setModelOrientationCorrection((new Matrix4f()).rotationY((float) java.lang.Math.toRadians(90.0f)));
 
-		
+		selectAvatar2 = new GameObject(GameObject.root(), dolS, doltx2);
+		selectAvatar2.setLocalTranslation((new Matrix4f()).translation(0.5f, 15.25f, 0.25f));
+		selectAvatar2.setLocalScale((new Matrix4f()).scaling(0.1f));
+		selectAvatar2.getRenderStates()
+				.setModelOrientationCorrection((new Matrix4f()).rotationY((float) java.lang.Math.toRadians(270.0f)));
+
 		// build dolphin in the center of the window
-		dol = new GameObject(GameObject.root(), dolS, doltx);
+		dol = new GameObject(GameObject.root(), dolS, doltx1);
 		Matrix4f initialTranslationD = (new Matrix4f()).translation(0, 15.0f, 0);
 		// TODO: check why pitch and roll enables a visualization bug after
 		// long playing times.
@@ -333,6 +356,11 @@ public class MyGame extends VariableFrameRateGame {
 		orbitController = new CameraOrbit3D(myCamera, dol, gamepadName, engine);
 		
 		// Initialize our nodeControllers for each target object
+		selectionRotateController = new RotationController(engine, new Vector3f(0,1,1), 0.001f);
+		selectionRotateController.addTarget(selectAvatar1);
+		selectionRotateController.enable();
+		(engine.getSceneGraph()).addNodeController(selectionRotateController);
+
 		NodeController rotController1 = new RotationController(engine, new Vector3f(0,1,0), 0.002f);
 		rotController1.addTarget(reloadingStation);
 		controllerArr.add(rotController1);
@@ -367,6 +395,8 @@ public class MyGame extends VariableFrameRateGame {
 		FireMissileActionK fireMissile = new FireMissileActionK(this, 0.0005f);
 		FireBulletActionK fireBullet = new FireBulletActionK(this, .5f);
 		DropMarkerActionK dropMarker = new DropMarkerActionK(this, .0005f);
+		CycleAvatarSelectionAction cycleAvatar = new CycleAvatarSelectionAction(this);
+		SelectAvatarAction selectAvatar = new SelectAvatarAction(this);
 
 		// Bind keyboard keys W, S, A, D, Q, E, UP, DOWN to their actions
 		inputManager.associateActionWithAllKeyboards(
@@ -438,7 +468,15 @@ public class MyGame extends VariableFrameRateGame {
 				net.java.games.input.Component.Identifier.Key.SPACE, 
 				fireMissile, 
 				InputManager.INPUT_ACTION_TYPE.ON_PRESS_ONLY);
-
+		inputManager.associateActionWithAllKeyboards(
+				net.java.games.input.Component.Identifier.Key.Z, 
+				cycleAvatar, 
+				InputManager.INPUT_ACTION_TYPE.ON_PRESS_ONLY);
+		inputManager.associateActionWithAllKeyboards(
+				net.java.games.input.Component.Identifier.Key.X, 
+				selectAvatar, 
+				InputManager.INPUT_ACTION_TYPE.ON_PRESS_ONLY);
+		
 		// Now bind X, Y, YRot to joystick/game controller
 		inputManager.associateActionWithAllGamepads(
 				net.java.games.input.Component.Identifier.Axis.Y,
@@ -532,58 +570,72 @@ public class MyGame extends VariableFrameRateGame {
 		if (!paused) {
 			elapsTime += (currFrameTime - lastFrameTime) / 1000.0;
 		}
-
 		float elapsedFramesPerSecond = getFramesPerSecond();
-		Vector3f dolcoords = dol.getWorldLocation();
-        Vector3f dolFwd = dol.getLocalForwardVector();
-        Vector3f newLocation = dolcoords.add(dolFwd.mul(0.0006f * elapsedFramesPerSecond));
-		dol.setLocalLocation(newLocation);
-		arrangeHUD(elapsedFramesPerSecond);
-		inputManager.update(elapsedFramesPerSecond);
-		orbitController.updateCameraPosition();
-		checkForMissileReloading();
-		updateMovingObjects(elapsedFramesPerSecond);
-		updateMovingBullets(elapsedFramesPerSecond);
-		
-		// avatarGroundCollision();
-		protClient.sendRotationMessage(dol.getWorldRotation());
-		protClient.sendMoveMessage(dol.getWorldLocation()); //TODO optimiz?e this message
-		processNetworking((float)elapsTime);
-		frameCounter++;
 
-		// update physics
-		if (running) {
-			AxisAngle4f aa = new AxisAngle4f();
-			Matrix4f mat = new Matrix4f();
-			Matrix4f mat2 = new Matrix4f().identity();
-			Matrix4f mat3 = new Matrix4f().identity();
-			checkForCollisions();
+		if (inSelectionScreen) {
+			inputManager.update(elapsedFramesPerSecond);
+			Vector3f hudSelectColor = new Vector3f(0, 1, 0);
+			String selDispStr = "Press 'x' to accept. Press 'z' to cycle through available avatars. Current avatar = ";
+			Viewport selViewport = (engine.getRenderSystem()).getViewport("MAIN");
+			if (selectedAvatar == 1) {
+				(engine.getHUDmanager()).setHUD2(selDispStr + "1", hudSelectColor, (int) selViewport.getRelativeLeft(),
+						(int) selViewport.getRelativeBottom());
+			} else if (selectedAvatar == 2) {
+				(engine.getHUDmanager()).setHUD2(selDispStr + "2", hudSelectColor, (int) selViewport.getRelativeLeft(),
+						(int) selViewport.getRelativeBottom());
+			}
+		} else {
+			Vector3f dolcoords = dol.getWorldLocation();
+			Vector3f dolFwd = dol.getLocalForwardVector();
+			Vector3f newLocation = dolcoords.add(dolFwd.mul(0.0006f * elapsedFramesPerSecond));
+			dol.setLocalLocation(newLocation);
+			arrangeHUD(elapsedFramesPerSecond);
+			inputManager.update(elapsedFramesPerSecond);
+			orbitController.updateCameraPosition();
+			checkForMissileReloading();
+			updateMovingObjects(elapsedFramesPerSecond);
+			updateMovingBullets(elapsedFramesPerSecond);
+			
+			// avatarGroundCollision();
+			protClient.sendRotationMessage(dol.getWorldRotation());
+			protClient.sendMoveMessage(dol.getWorldLocation()); //TODO optimiz?e this message
+			processNetworking((float)elapsTime);
+			frameCounter++;
 
-			physicsEngine.update((float)elapsTime);
-			for (GameObject go:engine.getSceneGraph().getGameObjects()) { 
-				if (go.getPhysicsObject() != null) { 
-					// set translation
-					mat.set(toFloatArray(go.getPhysicsObject().getTransform()));
-					mat2.set(3,0,mat.m30());
-					mat2.set(3,1,mat.m31());
-					mat2.set(3,2,mat.m32());
-					go.setLocalTranslation(mat2);
-					// set rotation
-					mat.getRotation(aa);
-					mat3.rotation(aa);
-					go.setLocalRotation(mat3);
-				} 
+			// update physics
+			if (running) {
+				AxisAngle4f aa = new AxisAngle4f();
+				Matrix4f mat = new Matrix4f();
+				Matrix4f mat2 = new Matrix4f().identity();
+				Matrix4f mat3 = new Matrix4f().identity();
+				checkForCollisions();
+
+				physicsEngine.update((float)elapsTime);
+				for (GameObject go:engine.getSceneGraph().getGameObjects()) { 
+					if (go.getPhysicsObject() != null) { 
+						// set translation
+						mat.set(toFloatArray(go.getPhysicsObject().getTransform()));
+						mat2.set(3,0,mat.m30());
+						mat2.set(3,1,mat.m31());
+						mat2.set(3,2,mat.m32());
+						go.setLocalTranslation(mat2);
+						// set rotation
+						mat.getRotation(aa);
+						mat3.rotation(aa);
+						go.setLocalRotation(mat3);
+					} 
+				}
 			} 
-		} 
-	
+		
 
-		// update sound
-		for (int i = 0; i < movingEnemies.size(); ++i) {
-			bugChitterSound.setLocation(movingEnemies.get(i).getLocalLocation());
-			setEarParameters();
+			// update sound
+			for (int i = 0; i < movingEnemies.size(); ++i) {
+				bugChitterSound.setLocation(movingEnemies.get(i).getLocalLocation());
+				setEarParameters();
+			}
+			audioMgr.getEar().setLocation(dol.getWorldLocation());
+			audioMgr.getEar().setOrientation(myCamera.getN(), new Vector3f(0.0f, 1.0f, 0.0f));
 		}
-		audioMgr.getEar().setLocation(dol.getWorldLocation());
-		audioMgr.getEar().setOrientation(myCamera.getN(), new Vector3f(0.0f, 1.0f, 0.0f));
 	}
 
 	@Override
@@ -757,7 +809,8 @@ public class MyGame extends VariableFrameRateGame {
 			Vector3f dolLocation = dol.getWorldLocation();
 			Vector3f dolDirection = dol.getLocalForwardVector();
 	
-			Matrix4f initialTranslation = (new Matrix4f()).translation(dolLocation.x(), dolLocation.y(), dolLocation.z());
+			Matrix4f initialTranslation = (new Matrix4f()).translation(
+				dolLocation.x(), dolLocation.y()-0.02f, dolLocation.z());
 			Matrix4f initialScale = (new Matrix4f()).scaling(0.07f);
 			markerObject.setLocalTranslation(initialTranslation);
 			markerObject.setLocalScale(initialScale);
@@ -765,15 +818,16 @@ public class MyGame extends VariableFrameRateGame {
 			markerObject.setLocalRotation(dol.getLocalRotation());
 			movingMarkers.add(markerObject);
 			// markerObject.getRenderStates().setModelOrientationCorrection(
-			// 	(new Matrix4f()).rotationY((float)java.lang.Math.toRadians(270.0f)));
+			// 	(new Matrix4f()).rotationY((float)java.lang.Math.toRadians(90.0f)));
 				
 			// Convert avatar transform to double array
-			tempTransform = toDoubleArray(initialTranslation.rotateY(
-				(float)java.lang.Math.toRadians(270.0f)).get(vals));
+			// tempTransform = toDoubleArray(initialTranslation.rotateY(
+			// 	(float)java.lang.Math.toRadians(270.0f)).get(vals));
+			tempTransform = toDoubleArray(initialTranslation.get(vals));
 			mass = 1.5f;
 			radius = 0.1f;
-			height = 0.25f;
-			markerP = (engine.getSceneGraph()).addPhysicsCapsule(mass, tempTransform, radius, height);
+			height = 0.35f;
+			markerP = (engine.getSceneGraph()).addPhysicsCapsuleZ(mass, tempTransform, radius, height);
 			markerP.setBounciness(0.1f);
 			markerObject.setPhysicsObject(markerP);
 
@@ -783,7 +837,7 @@ public class MyGame extends VariableFrameRateGame {
 
 			// public PhysicsObject addPhysicsCylinder(float mass, double[] transform, float radius, float height)			
 			PhysicsObject cylinderP = (engine.getSceneGraph()).addPhysicsCylinder(
-				0.0f, tempTransform, radius, height/5);
+				0.0f, tempTransform, 2.5f*radius, height/5.0f);
 			groundTiles.add(cylinderP);
 			// movingObjects.add(markerObject);
 			protClient.sendCreateMarkerMessage(markerObject.getWorldLocation());
@@ -924,6 +978,42 @@ public class MyGame extends VariableFrameRateGame {
 		}
 	}
 
+	public int getSelectedAvatar() {
+		return selectedAvatar;
+	}
+
+	public void setSelectedAvatar(int a) {
+		if (a == 1) {
+			selectedAvatar = 1;
+			selectAvatarSound.play();
+			selectAvatar1.setLocalScale((new Matrix4f()).scaling(0.15f));
+			selectAvatar2.setLocalScale((new Matrix4f()).scaling(0.1f));
+			selectionRotateController.removeTarget(selectAvatar2);
+			selectionRotateController.addTarget(selectAvatar1);
+			dol.setTextureImage(doltx1);
+		} else if (a == 2) {
+			selectedAvatar = 2;
+			selectAvatarSound.play();
+			selectAvatar1.setLocalScale((new Matrix4f()).scaling(0.1f));
+			selectAvatar2.setLocalScale((new Matrix4f()).scaling(0.15f));
+			selectionRotateController.removeTarget(selectAvatar1);
+			selectionRotateController.addTarget(selectAvatar2);
+			dol.setTextureImage(doltx2);
+		}
+	}
+
+	public boolean isSelectionScreen() {
+		return inSelectionScreen;
+	}
+
+	public void closeAvatarSelection() {
+		selectionRotateController.disable();
+		selectionRotateController.removeTarget(selectedAvatar == 1 ? selectAvatar1 : selectAvatar2);
+		GameObject.root().removeChild(selectAvatar1);
+		GameObject.root().removeChild(selectAvatar2);
+		inSelectionScreen = false;
+	}
+
 	private void checkForCollisions() { 
 		com.bulletphysics.dynamics.DynamicsWorld dynamicsWorld;
 		com.bulletphysics.collision.broadphase.Dispatcher dispatcher;
@@ -949,30 +1039,31 @@ public class MyGame extends VariableFrameRateGame {
 		} 
 	}
 
-private float[] toFloatArray(double[] arr) { 
-	if (arr == null) return null;
-	int n = arr.length;
-	float[] ret = new float[n];
-	for (int i = 0; i < n; i++) { 
-		ret[i] = (float)arr[i];
+	private float[] toFloatArray(double[] arr) { 
+		if (arr == null) return null;
+		int n = arr.length;
+		float[] ret = new float[n];
+		for (int i = 0; i < n; i++) { 
+			ret[i] = (float)arr[i];
+		}
+		return ret;
 	}
-	return ret;
-}
 
-private double[] toDoubleArray(float[] arr) { 
-	if (arr == null) return null;
-	int n = arr.length;
-	double[] ret = new double[n];
-	for (int i = 0; i < n; i++) { 
-		ret[i] = (double)arr[i];
+	private double[] toDoubleArray(float[] arr) { 
+		if (arr == null) return null;
+		int n = arr.length;
+		double[] ret = new double[n];
+		for (int i = 0; i < n; i++) { 
+			ret[i] = (double)arr[i];
+		}
+		return ret;
 	}
-	return ret;
-}
 
 	// ---------- NETWORKING SECTION ----------------
 
 	public ObjShape getGhostShape() { return dolS; }
-	public TextureImage getGhostTexture() { return doltx; }
+	// TODO: send texture number through networking message
+	public TextureImage getGhostTexture() { return doltx1; }
 	public ObjShape getMarkerShape() { return markerS; }
 	public TextureImage getMarkerTexture() { return bombTex; }
 	public ObjShape getMissileShape() { return missileShape; }
@@ -1033,6 +1124,8 @@ private double[] toDoubleArray(float[] arr) {
 		System.out.println("**************************");
 		System.out.println("Gamepad and Key Bindings:");
 		System.out.println("**************************\n");
+		System.out.println("\tCycle through avatar selection:\t\t\tz");
+		System.out.println("\tSelect current avatar:\t\t\tx");
 		System.out.println("\tMove Forward:\t\t\t\tW, Gamepad Left Joystick Y-axis up");
 		System.out.println("\tMove Backward:\t\t\t\tS, Gamepad Left Joystick Y-axis down");
 		System.out.println("\tYaw Left:\t\t\t\tA, Gamepad Left Joystick X-axis left");

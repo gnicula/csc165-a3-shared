@@ -41,7 +41,7 @@ public class CameraOrbit3D {
         avatar = av;
         cameraAzimuth = 0.0f; // start BEHIND and ABOVE the target
         cameraElevation = 20.0f; // elevation is in degrees
-        cameraRadius = 1.5f; // distance from camera to avatar
+        cameraRadius = 1.75f; // distance from camera to avatar
         setupInputs(gpName);
         updateCameraPosition();
     } 
