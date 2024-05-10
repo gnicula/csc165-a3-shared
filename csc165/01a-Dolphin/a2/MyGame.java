@@ -22,6 +22,7 @@ import com.bulletphysics.collision.dispatch.CollisionObject;
 
 import java.util.ArrayList;
 import java.util.ListIterator;
+import java.util.concurrent.TimeUnit;
 import java.lang.Math;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -58,11 +59,11 @@ public class MyGame extends VariableFrameRateGame {
 	private ArrayList<GameObject> movingMarkers = new ArrayList<GameObject>();
 	private AnimatedShape enemyShape;
 	private GameObject dol, selectAvatar1, selectAvatar2, base, torus, sphere, sphereSatellite, plane, groundPlane,
-			wAxisX, wAxisY, wAxisZ, manual, magnet, missileObj, tower, reloadingStation, bullet, marker;
+			wAxisX, wAxisY, wAxisZ, manual, magnet, missileObj, tower, reloadingStation, bullet, marker, laser;
 	private ObjShape dolS, cubS, torusS, planeS, groundPlaneS, wAxisLineShapeX, wAxisLineShapeY, 
-			wAxisLineShapeZ, manualS, magnetS, worldObj, missileShape, towerS, bulletS, markerS;
+			wAxisLineShapeZ, manualS, magnetS, worldObj, missileShape, towerS, bulletS, markerS, laserS;
 	private TextureImage doltx1, doltx2, brick, grass, corvette, assignt, enemyTexture, metal, water, 
-			torusWater, fur, terrainTexture, terrainHeightMap, missile, towerTexture, tracer, bombTex;
+			torusWater, fur, terrainTexture, terrainHeightMap, missile, towerTexture, tracer, bombTex, laserTex;
 	private Light light1, light2;
 	private Camera myCamera, myViewportCamera;
 	private CameraOrbit3D orbitController;
@@ -75,7 +76,9 @@ public class MyGame extends VariableFrameRateGame {
 	private Vector3f right; // u-vector/x-axis
 
 	private IAudioManager audioMgr;
-	private Sound bugChitterSound, selectAvatarSound;
+	private Sound bugChitterSound, selectAvatarSound, cannonSound, jetIdleSound, jetABSound, missileSound, comonaBGMSound,
+			zeroBGMSound;
+	public boolean isAfterBurnerOn = false;
 
 	private PhysicsEngine physicsEngine;
 	private PhysicsObject markerP, planeP;
@@ -129,6 +132,7 @@ public class MyGame extends VariableFrameRateGame {
 
 	@Override
 	public void loadShapes() {
+		laserS = new ImportedModel("beam.obj");
 		markerS = new ImportedModel("marker.obj");
 		towerS = new ImportedModel("towertest.obj");
 		dolS = new ImportedModel("f15.obj");
@@ -158,6 +162,7 @@ public class MyGame extends VariableFrameRateGame {
 
 	@Override
 	public void loadTextures() {
+		laserTex = new TextureImage("laser.jpg");
 		bombTex = new TextureImage("bomb.jpg");
 		tracer = new TextureImage("tracer.jpg");
 		doltx1 = new TextureImage("F15A.jpg");
@@ -198,6 +203,47 @@ public class MyGame extends VariableFrameRateGame {
 			selectAvatarSoundResource, SoundType.SOUND_EFFECT, 35, false);
 		selectAvatarSound.initialize(audioMgr);
 
+		// https://www.youtube.com/watch?v=SN4jfxckQiM "M61 Vulcan  BRRRRRT Sound" - Century
+		AudioResource cannonSoundResource = audioMgr.createAudioResource("assets/sounds/cannon.wav",
+			AudioResourceType.AUDIO_SAMPLE);
+		cannonSound = new Sound(
+			cannonSoundResource, SoundType.SOUND_EFFECT, 30, false);
+		cannonSound.initialize(audioMgr);
+
+		// https://www.youtube.com/watch?v=jQIwmKEZby4 "F-15 VARIABLE AREA NOZZLE" - KOSKEI AEROSPACE
+		AudioResource jetIdleSoundResource = audioMgr.createAudioResource("assets/sounds/jetIdle.wav",
+			AudioResourceType.AUDIO_SAMPLE);
+		jetIdleSound = new Sound(
+			jetIdleSoundResource, SoundType.SOUND_EFFECT, 10, false);
+		jetIdleSound.initialize(audioMgr);
+
+		// https://www.youtube.com/watch?v=TBi3sUvmOd4 " F-15 & F-16 Full Afterburner Test on the Ground (Afterburner Run)" - USA Military Channel
+		AudioResource jetABSoundResource = audioMgr.createAudioResource("assets/sounds/jetAB.wav",
+			AudioResourceType.AUDIO_SAMPLE);
+		jetABSound = new Sound(
+			jetABSoundResource, SoundType.SOUND_EFFECT, 12, false);
+		jetABSound.initialize(audioMgr);
+
+		// https://www.youtube.com/watch?v=1qUN59Oebe0 "Missile launch Sound effect" - mrkerk12
+		AudioResource missileSoundResource = audioMgr.createAudioResource("assets/sounds/missileSound.wav",
+			AudioResourceType.AUDIO_SAMPLE);
+		missileSound = new Sound(
+			missileSoundResource, SoundType.SOUND_EFFECT, 10, false);
+		missileSound.initialize(audioMgr);
+
+		// https://www.youtube.com/watch?v=9G1ob5jnuSo "Comona - 19/48 - Ace Combat 4 Original Soundtrack" - Ace Combat Fan
+		AudioResource comonaBGMResource = audioMgr.createAudioResource("assets/sounds/comona.wav",
+			AudioResourceType.AUDIO_SAMPLE);
+		comonaBGMSound = new Sound(
+			comonaBGMResource, SoundType.SOUND_MUSIC, 15, true);
+		comonaBGMSound.initialize(audioMgr);
+
+		// https://www.youtube.com/watch?v=ML4Jx76vSTk "Zero - 25/43 - Ace Combat Zero Original Soundtrack" - Ace Combat Fan
+		AudioResource zeroBGMResource = audioMgr.createAudioResource("assets/sounds/zero.wav",
+			AudioResourceType.AUDIO_SAMPLE);
+		zeroBGMSound = new Sound(
+			zeroBGMResource, SoundType.SOUND_MUSIC, 15, true);
+		zeroBGMSound.initialize(audioMgr);
 	}
 
 	public void buildEnemyObjects(int numEnemies) {
@@ -278,7 +324,6 @@ public class MyGame extends VariableFrameRateGame {
 		wAxisX.getRenderStates().setColor(new Vector3f(1.0f, 0, 0));
 		wAxisY.getRenderStates().setColor(new Vector3f(0, 1.0f, 0));
 		wAxisZ.getRenderStates().setColor(new Vector3f(0, 0, 1.0f));
-
 	}
 
 	@Override
@@ -592,6 +637,32 @@ public class MyGame extends VariableFrameRateGame {
 			arrangeHUD(elapsedFramesPerSecond);
 			inputManager.update(elapsedFramesPerSecond);
 			orbitController.updateCameraPosition();
+			if (isAfterBurnerOn) {
+				if (jetABSound.getIsPlaying() == false) {
+					jetABSound.setLocation(dolcoords);
+					jetIdleSound.stop();
+					jetABSound.play();
+				}
+			} else {
+				if (jetIdleSound.getIsPlaying() == false) {
+					jetIdleSound.setLocation(dolcoords);
+					jetABSound.stop();
+					jetIdleSound.play();
+				}
+			}
+
+			if (selectedAvatar == 1) {
+				// comonaBGMSound.setLocation(dol.getWorldLocation());
+				if (comonaBGMSound.getIsPlaying() == false)
+				{
+					comonaBGMSound.play();
+				}
+			} else if (selectedAvatar == 2) {
+				if (zeroBGMSound.getIsPlaying() == false)
+				{
+					zeroBGMSound.play();
+				}
+			}
 			checkForMissileReloading();
 			updateMovingObjects(elapsedFramesPerSecond);
 			updateMovingBullets(elapsedFramesPerSecond);
@@ -839,6 +910,24 @@ public class MyGame extends VariableFrameRateGame {
 			PhysicsObject cylinderP = (engine.getSceneGraph()).addPhysicsCylinder(
 				0.0f, tempTransform, 2.5f*radius, height/5.0f);
 			groundTiles.add(cylinderP);
+			Vector3f markerLoc = markerObject.getWorldLocation();
+			// double currentTime = elapsTime;
+			// boolean isMarkerThere = true;
+			// while (isMarkerThere){
+			// 	if (elapsTime - currentTime >= 5) {
+					// GameObject laser = new GameObject(GameObject.root(), laserS, laserTex);
+					// initialTranslation = (new Matrix4f()).translation(
+					// 	markerLoc.x(), markerLoc.y() + 20.0f, markerLoc.z());
+					// initialScale = (new Matrix4f()).scaling(100.0f);
+					// laser.setLocalTranslation(initialTranslation);
+					// laser.setLocalScale(initialScale);
+					// if (elapsTime - currentTime >= 6) {
+					// 	GameObject.root().removeChild(markerObject);
+					// 	GameObject.root().removeChild(laser);
+					// 	isMarkerThere = false;
+					// }
+				// }
+			// }
 			// movingObjects.add(markerObject);
 			protClient.sendCreateMarkerMessage(markerObject.getWorldLocation());
 			// --remainingMarkers;
@@ -861,6 +950,10 @@ public class MyGame extends VariableFrameRateGame {
 			missileObject.setLocalRotation(dol.getLocalRotation());
 			// missileObject.lookAt(dolDirection.x(), dolDirection.y(), dolDirection.z());
 			movingObjects.add(missileObject);
+
+			missileSound.setLocation(dolLocation);
+			missileSound.play();
+
 			protClient.sendCreateMissileMessage(missileObject.getWorldLocation());
 			--remainingMissiles;
 		}
@@ -878,6 +971,9 @@ public class MyGame extends VariableFrameRateGame {
 		bulletObject.setLocalRotation(dol.getLocalRotation());
 		movingBullets.add(bulletObject);
 		protClient.sendCreateBulletMessage(bulletObject.getWorldLocation());
+
+		cannonSound.setLocation(dol.getWorldLocation());
+		cannonSound.play();
 	}
 
 	private void updateMovingBullets(float elapsedFramesPerSecond) {
