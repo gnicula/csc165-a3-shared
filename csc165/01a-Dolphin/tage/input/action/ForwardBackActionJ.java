@@ -48,6 +48,12 @@ public class ForwardBackActionJ extends AbstractInputAction {
 
         dolph.moveForwardBack(speed, camera.getLocation());
         game.updateGhost(dolph);
+        System.out.println("Joystick event " + evt.toString());
+        if (keyValue < -0.3) {
+            game.isAfterBurnerOn = true;
+        } else if (keyValue >= -0.7) {
+            game.isAfterBurnerOn = false;
+        }
         // For A2 camera is always off dolphin
         if (game.onDolphinCam())
         {

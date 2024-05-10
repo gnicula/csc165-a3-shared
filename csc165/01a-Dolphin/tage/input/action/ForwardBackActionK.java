@@ -39,15 +39,22 @@ public class ForwardBackActionK extends AbstractInputAction {
 
     @Override
     public void performAction(float time, Event evt) {
-        speed = direction_and_scale * time;
-
+        speed = direction_and_scale * time; 
         dolph.moveForwardBack(speed, camera.getLocation());
         // game.setAvatarHeightAtLocation();
         game.updateGhost(dolph);
+        System.out.println("Keyboard event " + evt.toString());
+        if (evt.getValue() == 1.0) {
+            game.isAfterBurnerOn = true;
+        } else {
+            game.isAfterBurnerOn = false;
+        }
+
         // For A2 camera is always off dolphin
         if (game.onDolphinCam())
         {
             game.setOnDolphinCam();
         }
+       
     }
 }
