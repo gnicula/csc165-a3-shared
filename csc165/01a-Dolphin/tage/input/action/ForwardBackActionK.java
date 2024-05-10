@@ -43,7 +43,7 @@ public class ForwardBackActionK extends AbstractInputAction {
         dolph.moveForwardBack(speed, camera.getLocation());
         // game.setAvatarHeightAtLocation();
         game.updateGhost(dolph);
-        System.out.println("Keyboard event " + evt.toString());
+        // System.out.println("Keyboard event " + evt.toString());
         if (evt.getValue() == 1.0) {
             game.isAfterBurnerOn = true;
         } else {
