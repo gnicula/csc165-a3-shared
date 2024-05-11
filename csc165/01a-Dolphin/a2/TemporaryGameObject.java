@@ -4,10 +4,10 @@ import tage.GameObject;
 import tage.ObjShape;
 import tage.TextureImage;
 
-public class MarkerGameObject extends GameObject {
+public class TemporaryGameObject extends GameObject {
     private float lifetime = 0;
 
-    public MarkerGameObject(GameObject r, ObjShape s, TextureImage t) 
+    public TemporaryGameObject(GameObject r, ObjShape s, TextureImage t) 
 	{	
         super(r, s, t);
 	}

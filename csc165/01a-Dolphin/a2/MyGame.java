@@ -57,6 +57,7 @@ public class MyGame extends VariableFrameRateGame {
 	private ArrayList<GameObject> movingBullets = new ArrayList<GameObject>();
 	private ArrayList<GameObject> movingEnemies = new ArrayList<GameObject>();
 	private ArrayList<GameObject> movingMarkers = new ArrayList<GameObject>();
+	private ArrayList<GameObject> laserMarkers = new ArrayList<GameObject>();
 	private AnimatedShape enemyShape;
 	private GameObject dol, selectAvatar1, selectAvatar2, base, torus, sphere, sphereSatellite, plane, groundPlane,
 			wAxisX, wAxisY, wAxisZ, manual, magnet, missileObj, tower, reloadingStation, bullet, marker, laser;
@@ -913,9 +914,19 @@ public class MyGame extends VariableFrameRateGame {
 		}
 	}
 
+	public void createLaserObjects(Vector3f loc) {
+		GameObject laser = new TemporaryGameObject(GameObject.root(), laserS, laserTex);
+		Matrix4f initialTranslation = (new Matrix4f()).translation(
+			loc.x(), loc.y() + 5.0f, loc.z());
+		Matrix4f initialScale = (new Matrix4f()).scaling(0.05f);
+		laser.setLocalTranslation(initialTranslation);
+		laser.setLocalScale(initialScale);
+		laserMarkers.add(laser);
+	}
+	
 	public void dropMarker(float speed) {
 		if (remainingMarkers > 0) {
-			GameObject markerObject = new MarkerGameObject(GameObject.root(), markerS, bombTex);
+			GameObject markerObject = new TemporaryGameObject(GameObject.root(), markerS, bombTex);
 			// missileObject.setParent(GameObject.root());
 			Vector3f dolLocation = dol.getWorldLocation();
 			Vector3f dolDirection = dol.getLocalForwardVector();
@@ -952,24 +963,7 @@ public class MyGame extends VariableFrameRateGame {
 			groundTiles.add(cylinderP);
 			Vector3f markerLoc = markerObject.getWorldLocation();
 			protClient.sendCreateMarkerMessage(markerObject.getWorldLocation());
-			// double currentTime = elapsTime;
-			// boolean isMarkerThere = true;
-			// while (isMarkerThere){
-			// 	if (elapsTime - currentTime >= 5) {
-					// GameObject laser = new GameObject(GameObject.root(), laserS, laserTex);
-					// initialTranslation = (new Matrix4f()).translation(
-					// 	markerLoc.x(), markerLoc.y() + 20.0f, markerLoc.z());
-					// initialScale = (new Matrix4f()).scaling(100.0f);
-					// laser.setLocalTranslation(initialTranslation);
-					// laser.setLocalScale(initialScale);
-					// if (elapsTime - currentTime >= 6) {
-					// 	GameObject.root().removeChild(markerObject);
-					// 	GameObject.root().removeChild(laser);
-					// 	isMarkerThere = false;
-					// }
-				// }
-			// }
-			// movingObjects.add(markerObject);
+
 			// --remainingMarkers;
 		}
 	}
@@ -1054,17 +1048,27 @@ public class MyGame extends VariableFrameRateGame {
 			protClient.sendMissileRotationMessage(go.getWorldRotation());
 			
 		}
+
 		for (GameObject go: new ArrayList<GameObject>(movingMarkers)) {
 			go.moveForwardBack(0.002f*elapsedFramesPerSecond, new Vector3f());
 			protClient.sendMoveMarkerMessage(go.getWorldLocation());
 			protClient.sendMarkerRotationMessage(go.getWorldRotation());
-			((MarkerGameObject)go).setLifetime(((MarkerGameObject)go).getLifetime() + elapsedFramesPerSecond);
-			if (((MarkerGameObject)go).getLifetime() > 1000) {
+			((TemporaryGameObject)go).setLifetime(((TemporaryGameObject)go).getLifetime() + elapsedFramesPerSecond);
+			if (((TemporaryGameObject)go).getLifetime() > 10000) {
 				GameObject.root().removeChild(go);
 				movingMarkers.remove(go);
+				createLaserObjects(go.getWorldLocation());
 			}
-			
 		}
+
+		for (GameObject go: new ArrayList<GameObject>(laserMarkers)) {
+			((TemporaryGameObject)go).setLifetime(((TemporaryGameObject)go).getLifetime() + elapsedFramesPerSecond);
+			if (((TemporaryGameObject)go).getLifetime() > 5000) {
+				GameObject.root().removeChild(go);
+				laserMarkers.remove(go);
+			}
+		}
+
 		for (GameObject go: movingEnemies) {
 			go.lookAt(base);
 			//go.moveForwardBack(0.0001f*elapsedFramesPerSecond, new Vector3f());
