@@ -349,12 +349,14 @@ public class MyGame extends VariableFrameRateGame {
 
 		sphereLight = new Light();
 		sphereLight.setLocation(sphere.getWorldLocation());
-		sphereLight.setType(Light.LightType.SPOTLIGHT);
+		sphereLight.setType(Light.LightType.POSITIONAL);
 		sphereLight.setSpecular(1.0f, 0f, 0.5f);
 		sphereLight.setDiffuse(1.0f, 0f, 0.5f);
 		Vector3f beaconDirection = new Vector3f(0f, -1.0f, -1.0f);
 		sphereLight.setDirection(beaconDirection);
-		sphereLight.setCutoffAngle(15.0f);
+		sphereLight.setCutoffAngle(20.0f);
+		sphereLight.setConstantAttenuation(0f);
+		sphereLight.setLinearAttenuation(0.25f);
 		(engine.getSceneGraph()).addLight(sphereLight);
 	}
 
@@ -770,7 +772,14 @@ public class MyGame extends VariableFrameRateGame {
 				System.out.println("starting physics");
 				running = true;
 				break;
-
+			case KeyEvent.VK_6:
+				System.out.println("Turning off Tower Light");
+				sphereLight.setLinearAttenuation(10f);
+				break;
+			case KeyEvent.VK_7:
+				System.out.println("Turning on Tower Light");
+				sphereLight.setLinearAttenuation(.25);
+				break;
 			// Assignment A2, disable on/off dolphin Camera setting
 			// Camera is now an OrbitController3D and is always off dolphin
 			// case KeyEvent.VK_SPACE:
@@ -1291,8 +1300,11 @@ public class MyGame extends VariableFrameRateGame {
 		System.out.println("\tMini-Map Zoom In:\t\t\t]");
 		System.out.println("\tMini-Map Zoom Out:\t\t\t[");
 		System.out.println("\tToggle World Axes On/Off:\t\t1");
-		System.out.println("\tDolphin Wireframe On:\t\t\t2");
-		System.out.println("\tDolphin Wireframe Off:\t\t\t3");
+		System.out.println("\tJet Wireframe On:\t\t\t2");
+		System.out.println("\tJet Wireframe Off:\t\t\t3");
+		System.out.println("\tStarting physics:\t\t\t5 (On by Default)");
+		System.out.println("\tTurning off Tower Light:\t\t\t6");
+		System.out.println("\tTurning on Tower Light:\t\t\t7");
 		System.out.println("\tExit Game:\t\t\t\tESC");
 	}
 }
