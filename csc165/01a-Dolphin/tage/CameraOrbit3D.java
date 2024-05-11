@@ -48,8 +48,12 @@ public class CameraOrbit3D {
 
     /** Associates named controller gp axis rx/ry and buttons 2/3 with azimuth, elevate, and zoom camera controls. */
     private void setupInputs(String gp) {
-        OrbitAzimuthAction azmAction = new OrbitAzimuthAction();
-        OrbitElevationAction elevAction = new OrbitElevationAction();
+        OrbitAzimuthAction azmAction = new OrbitAzimuthAction(1f);
+        OrbitElevationAction elevAction = new OrbitElevationAction(1f);
+        OrbitAzimuthAction azmRight = new OrbitAzimuthAction(1f);
+        OrbitAzimuthAction azmLeft = new OrbitAzimuthAction(-1f);
+        OrbitElevationAction elevUp = new OrbitElevationAction(1f);
+        OrbitElevationAction elevDown = new OrbitElevationAction(-1f);
         OrbitZoomAction zoomIn = new OrbitZoomAction(-0.0002f);
         OrbitZoomAction zoomOut = new OrbitZoomAction(0.0002f);
         InputManager im = engine.getInputManager();
@@ -64,6 +68,24 @@ public class CameraOrbit3D {
                 InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
         im.associateAction(gp, 
 				net.java.games.input.Component.Identifier.Button._3, zoomOut,
+                InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+        im.associateActionWithAllKeyboards(
+                net.java.games.input.Component.Identifier.Key.LEFT, azmLeft,
+                InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+        im.associateActionWithAllKeyboards(
+            net.java.games.input.Component.Identifier.Key.RIGHT, azmRight,
+            InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+        im.associateActionWithAllKeyboards(
+                net.java.games.input.Component.Identifier.Key.R, elevUp,
+                InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+        im.associateActionWithAllKeyboards(
+            net.java.games.input.Component.Identifier.Key.F, elevDown,
+            InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+        im.associateActionWithAllKeyboards(
+				net.java.games.input.Component.Identifier.Key.SLASH, zoomIn,
+                InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+        im.associateActionWithAllKeyboards( 
+				net.java.games.input.Component.Identifier.Key.APOSTROPHE, zoomOut,
                 InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
     }
 
@@ -94,13 +116,17 @@ public class CameraOrbit3D {
 	*  Also adds a corresponding renderable object if displaying the physics world has been enabled.
 	*/
     private class OrbitAzimuthAction extends AbstractInputAction {
+        private float factor;
+        public OrbitAzimuthAction(float factor) {
+            this.factor = factor;
+        }
         public void performAction(float time, Event event) {
             float rotAmount;
             if (event.getValue() < -0.2) {
-                rotAmount = -SMOOTHNESS_FACTOR;
+                rotAmount = -SMOOTHNESS_FACTOR * factor;
             } else {
                 if (event.getValue() > 0.2) {
-                    rotAmount = SMOOTHNESS_FACTOR;
+                    rotAmount = SMOOTHNESS_FACTOR * factor;
                 } else {
                     rotAmount = 0.0f;
                 }
@@ -113,13 +139,17 @@ public class CameraOrbit3D {
 
     /** Implements a TAGE AbstractInputAction which changes the elevation of the CameraOrbit3D Object. */
     private class OrbitElevationAction extends AbstractInputAction {
+        private float factor;
+        public OrbitElevationAction(float factor) {
+            this.factor = factor;
+        }
         public void performAction(float time, Event event) {
             float elevAmount;
             if (event.getValue() < -0.2) {
-                elevAmount = -SMOOTHNESS_FACTOR;
+                elevAmount = -SMOOTHNESS_FACTOR * factor;
             } else {
                 if (event.getValue() > 0.2) {
-                    elevAmount = SMOOTHNESS_FACTOR;
+                    elevAmount = SMOOTHNESS_FACTOR * factor;
                 } else {
                     elevAmount = 0.0f;
                 }
