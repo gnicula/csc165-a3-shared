@@ -22,6 +22,7 @@ import com.bulletphysics.collision.dispatch.CollisionObject;
 
 import java.util.ArrayList;
 import java.util.ListIterator;
+import java.util.concurrent.TimeUnit;
 import java.lang.Math;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -58,12 +59,12 @@ public class MyGame extends VariableFrameRateGame {
 	private ArrayList<GameObject> movingMarkers = new ArrayList<GameObject>();
 	private AnimatedShape enemyShape;
 	private GameObject dol, selectAvatar1, selectAvatar2, base, torus, sphere, sphereSatellite, plane, groundPlane,
-			wAxisX, wAxisY, wAxisZ, manual, magnet, missileObj, tower, reloadingStation, bullet, marker;
-	private ObjShape dolS, cubS, torusS, planeS, groundPlaneS, wAxisLineShapeX, wAxisLineShapeY, 
-			wAxisLineShapeZ, manualS, magnetS, worldObj, missileShape, towerS, bulletS, markerS;
-	private TextureImage doltx1, doltx2, brick, grass, corvette, assignt, enemyTexture, metal, water, 
-			torusWater, fur, terrainTexture, terrainHeightMap, missile, towerTexture, tracer, bombTex;
-	private Light light1, light2;
+			wAxisX, wAxisY, wAxisZ, manual, magnet, missileObj, tower, reloadingStation, bullet, marker, laser;
+	private ObjShape dolS, planeS, sphereS, groundPlaneS, wAxisLineShapeX, wAxisLineShapeY, 
+			wAxisLineShapeZ, manualS, magnetS, worldObj, missileShape, towerS, bulletS, markerS, laserS;
+	private TextureImage doltx1, doltx2, brick, grass, red, assignt, enemyTexture, metal, water, 
+			torusWater, fur, terrainTexture, terrainHeightMap, missile, towerTexture, tracer, bombTex, laserTex;
+	private Light light1, light2, sphereLight;
 	private Camera myCamera, myViewportCamera;
 	private CameraOrbit3D orbitController;
 	private NodeController selectionRotateController;
@@ -75,7 +76,9 @@ public class MyGame extends VariableFrameRateGame {
 	private Vector3f right; // u-vector/x-axis
 
 	private IAudioManager audioMgr;
-	private Sound bugChitterSound, selectAvatarSound;
+	private Sound bugChitterSound, selectAvatarSound, cannonSound, jetIdleSound, jetABSound, missileSound, comonaBGMSound,
+			zeroBGMSound;
+	public boolean isAfterBurnerOn = false;
 
 	private PhysicsEngine physicsEngine;
 	private PhysicsObject markerP, planeP;
@@ -129,11 +132,12 @@ public class MyGame extends VariableFrameRateGame {
 
 	@Override
 	public void loadShapes() {
+		sphereS = new Sphere();
+		laserS = new ImportedModel("beam.obj");
 		markerS = new ImportedModel("marker.obj");
 		towerS = new ImportedModel("towertest.obj");
 		dolS = new ImportedModel("f15.obj");
 		bulletS = new ImportedModel("bullet.obj");
-		cubS = new Cube();
 		enemyShape = new AnimatedShape("bugarino.rkm", "bugarino.rks");
 		enemyShape.loadAnimation("WALK", "bugarino_walk.rka");
 		enemyShape.loadAnimation("IDLE", "bugarino_idle.rka");
@@ -158,13 +162,14 @@ public class MyGame extends VariableFrameRateGame {
 
 	@Override
 	public void loadTextures() {
+		laserTex = new TextureImage("laser.jpg");
 		bombTex = new TextureImage("bomb.jpg");
 		tracer = new TextureImage("tracer.jpg");
 		doltx1 = new TextureImage("F15A.jpg");
 		doltx2 = new TextureImage("F15F.jpg");
 		towerTexture = new TextureImage("towertexturetest.jpg");
 		grass = new TextureImage("grass1.jpg");
-		corvette = new TextureImage("corvette1.jpg");
+		red = new TextureImage("red.jpg");
 		assignt = new TextureImage("assign1.png");
 		enemyTexture = new TextureImage("bug_uv.jpg");
 		metal = new TextureImage("magnet1.jpg");
@@ -187,9 +192,9 @@ public class MyGame extends VariableFrameRateGame {
 		bugSoundResource = audioMgr.createAudioResource("assets/sounds/creepy_alien.wav", AudioResourceType.AUDIO_SAMPLE);
 		bugChitterSound = new Sound(bugSoundResource, SoundType.SOUND_EFFECT, 25, true);
 		bugChitterSound.initialize(audioMgr);
-		bugChitterSound.setMaxDistance(8.0f);
-		bugChitterSound.setMinDistance(0.1f);
-		bugChitterSound.setRollOff(10.0f);
+		bugChitterSound.setMaxDistance(5.0f);
+		bugChitterSound.setMinDistance(1.0f);
+		bugChitterSound.setRollOff(100.0f);
 
 		// https://opengameart.org/content/toom-click - CC BY 4.0 DEED
 		AudioResource selectAvatarSoundResource = audioMgr.createAudioResource(
@@ -198,6 +203,47 @@ public class MyGame extends VariableFrameRateGame {
 			selectAvatarSoundResource, SoundType.SOUND_EFFECT, 35, false);
 		selectAvatarSound.initialize(audioMgr);
 
+		// https://www.youtube.com/watch?v=SN4jfxckQiM "M61 Vulcan  BRRRRRT Sound" - Century
+		AudioResource cannonSoundResource = audioMgr.createAudioResource("assets/sounds/cannon.wav",
+			AudioResourceType.AUDIO_SAMPLE);
+		cannonSound = new Sound(
+			cannonSoundResource, SoundType.SOUND_EFFECT, 30, false);
+		cannonSound.initialize(audioMgr);
+
+		// https://www.youtube.com/watch?v=jQIwmKEZby4 "F-15 VARIABLE AREA NOZZLE" - KOSKEI AEROSPACE
+		AudioResource jetIdleSoundResource = audioMgr.createAudioResource("assets/sounds/jetIdle.wav",
+			AudioResourceType.AUDIO_SAMPLE);
+		jetIdleSound = new Sound(
+			jetIdleSoundResource, SoundType.SOUND_EFFECT, 10, false);
+		jetIdleSound.initialize(audioMgr);
+
+		// https://www.youtube.com/watch?v=TBi3sUvmOd4 " F-15 & F-16 Full Afterburner Test on the Ground (Afterburner Run)" - USA Military Channel
+		AudioResource jetABSoundResource = audioMgr.createAudioResource("assets/sounds/jetAB.wav",
+			AudioResourceType.AUDIO_SAMPLE);
+		jetABSound = new Sound(
+			jetABSoundResource, SoundType.SOUND_EFFECT, 12, false);
+		jetABSound.initialize(audioMgr);
+
+		// https://soundbible.com/1794-Missle-Launch.html "Missle Launch" -  Kibblesbob
+		AudioResource missileSoundResource = audioMgr.createAudioResource("assets/sounds/missileSound.wav",
+			AudioResourceType.AUDIO_SAMPLE);
+		missileSound = new Sound(
+			missileSoundResource, SoundType.SOUND_EFFECT, 10, false);
+		missileSound.initialize(audioMgr);
+
+		// https://pixabay.com/music/metal-melodic-metal-186403/ "Melodic Metal" - AudioDollar
+		AudioResource comonaBGMResource = audioMgr.createAudioResource("assets/sounds/melodicMetal.wav",
+			AudioResourceType.AUDIO_SAMPLE);
+		comonaBGMSound = new Sound(
+			comonaBGMResource, SoundType.SOUND_MUSIC, 15, true);
+		comonaBGMSound.initialize(audioMgr);
+
+		// https://pixabay.com/music/rock-crag-hard-rock-14401/ "Crag - Hard Rock" AlexGrohl
+		AudioResource zeroBGMResource = audioMgr.createAudioResource("assets/sounds/cragHR.wav",
+			AudioResourceType.AUDIO_SAMPLE);
+		zeroBGMSound = new Sound(
+			zeroBGMResource, SoundType.SOUND_MUSIC, 15, true);
+		zeroBGMSound.initialize(audioMgr);
 	}
 
 	public void buildEnemyObjects(int numEnemies) {
@@ -246,7 +292,7 @@ public class MyGame extends VariableFrameRateGame {
 
 		// build dolphin in the center of the window
 		dol = new GameObject(GameObject.root(), dolS, doltx1);
-		Matrix4f initialTranslationD = (new Matrix4f()).translation(0, 15.0f, 0);
+		Matrix4f initialTranslationD = (new Matrix4f()).translation(0f, 15.0f, 0f);
 		// TODO: check why pitch and roll enables a visualization bug after
 		// long playing times.
 		Matrix4f initialScaleD = (new Matrix4f()).scaling(0.05f);
@@ -255,10 +301,21 @@ public class MyGame extends VariableFrameRateGame {
 
 		// build our base at the center of the map.
 		base = new GameObject(GameObject.root(), towerS, towerTexture);
-		Matrix4f initialTranslationB = (new Matrix4f()).translation(0, 10.5f, 0.5f);
+		Matrix4f initialTranslationB = (new Matrix4f()).translation(0f, 10.5f, 0.5f);
 		Matrix4f initialScaleB = (new Matrix4f()).scaling(0.10f);
 		base.setLocalTranslation(initialTranslationB);
 		base.setLocalScale(initialScaleB);
+
+		// build sphere for lights on base
+		sphere = new GameObject(GameObject.root(), sphereS, red);
+		Matrix4f initialTranslationSp = (new Matrix4f()).translation(0.5f, 5.12f, 0.295f);
+		Matrix4f initialScaleSp = (new Matrix4f()).scaling(0.08f);
+		sphere.setLocalTranslation(initialTranslationSp);
+		sphere.setLocalScale(initialScaleSp);
+		// Create a hierarchical system
+		sphere.setParent(base);
+		sphere.propagateTranslation(true);
+		sphere.propagateRotation(false);
 
 		// build a reloading station for missiles.
 		reloadingStation = new GameObject(GameObject.root(), missileShape, missile);
@@ -278,7 +335,6 @@ public class MyGame extends VariableFrameRateGame {
 		wAxisX.getRenderStates().setColor(new Vector3f(1.0f, 0, 0));
 		wAxisY.getRenderStates().setColor(new Vector3f(0, 1.0f, 0));
 		wAxisZ.getRenderStates().setColor(new Vector3f(0, 0, 1.0f));
-
 	}
 
 	@Override
@@ -290,6 +346,16 @@ public class MyGame extends VariableFrameRateGame {
 		light2 = new Light();
 		light2.setLocation(new Vector3f(-5.0f, 4.0f, -2.0f));
 		(engine.getSceneGraph()).addLight(light2);
+
+		sphereLight = new Light();
+		sphereLight.setLocation(sphere.getWorldLocation());
+		sphereLight.setType(Light.LightType.SPOTLIGHT);
+		sphereLight.setSpecular(1.0f, 0f, 0.5f);
+		sphereLight.setDiffuse(1.0f, 0f, 0.5f);
+		Vector3f beaconDirection = new Vector3f(0f, -1.0f, -1.0f);
+		sphereLight.setDirection(beaconDirection);
+		sphereLight.setCutoffAngle(15.0f);
+		(engine.getSceneGraph()).addLight(sphereLight);
 	}
 
 	@Override
@@ -343,9 +409,9 @@ public class MyGame extends VariableFrameRateGame {
 		engine.enablePhysicsWorldRender();
 
 		// ---------- Setting up sound -----------
+		setEarParameters();
 		for (int i = 0; i < movingEnemies.size(); ++i) {
 			bugChitterSound.setLocation(movingEnemies.get(i).getLocalLocation());
-			setEarParameters();
 			bugChitterSound.play();
 		}
 
@@ -476,6 +542,15 @@ public class MyGame extends VariableFrameRateGame {
 				net.java.games.input.Component.Identifier.Key.X, 
 				selectAvatar, 
 				InputManager.INPUT_ACTION_TYPE.ON_PRESS_ONLY);
+		inputManager.associateActionWithAllKeyboards(
+				net.java.games.input.Component.Identifier.Key.C,
+				fireBullet,
+				InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		inputManager.associateActionWithAllKeyboards(
+				net.java.games.input.Component.Identifier.Key.V,
+				dropMarker,
+				InputManager.INPUT_ACTION_TYPE.ON_PRESS_ONLY);
+		
 		
 		// Now bind X, Y, YRot to joystick/game controller
 		inputManager.associateActionWithAllGamepads(
@@ -574,6 +649,7 @@ public class MyGame extends VariableFrameRateGame {
 
 		if (inSelectionScreen) {
 			inputManager.update(elapsedFramesPerSecond);
+			// processNetworking((float)elapsTime);
 			Vector3f hudSelectColor = new Vector3f(0, 1, 0);
 			String selDispStr = "Press 'x' to accept. Press 'z' to cycle through available avatars. Current avatar = ";
 			Viewport selViewport = (engine.getRenderSystem()).getViewport("MAIN");
@@ -592,6 +668,32 @@ public class MyGame extends VariableFrameRateGame {
 			arrangeHUD(elapsedFramesPerSecond);
 			inputManager.update(elapsedFramesPerSecond);
 			orbitController.updateCameraPosition();
+			if (isAfterBurnerOn) {
+				if (jetABSound.getIsPlaying() == false) {
+					jetABSound.setLocation(dolcoords);
+					jetIdleSound.stop();
+					jetABSound.play();
+				}
+			} else {
+				if (jetIdleSound.getIsPlaying() == false) {
+					jetIdleSound.setLocation(dolcoords);
+					jetABSound.stop();
+					jetIdleSound.play();
+				}
+			}
+
+			if (selectedAvatar == 1) {
+				// comonaBGMSound.setLocation(dol.getWorldLocation());
+				if (comonaBGMSound.getIsPlaying() == false)
+				{
+					comonaBGMSound.play();
+				}
+			} else if (selectedAvatar == 2) {
+				if (zeroBGMSound.getIsPlaying() == false)
+				{
+					zeroBGMSound.play();
+				}
+			}
 			checkForMissileReloading();
 			updateMovingObjects(elapsedFramesPerSecond);
 			updateMovingBullets(elapsedFramesPerSecond);
@@ -629,9 +731,9 @@ public class MyGame extends VariableFrameRateGame {
 		
 
 			// update sound
+			setEarParameters();
 			for (int i = 0; i < movingEnemies.size(); ++i) {
 				bugChitterSound.setLocation(movingEnemies.get(i).getLocalLocation());
-				setEarParameters();
 			}
 			audioMgr.getEar().setLocation(dol.getWorldLocation());
 			audioMgr.getEar().setOrientation(myCamera.getN(), new Vector3f(0.0f, 1.0f, 0.0f));
@@ -839,6 +941,24 @@ public class MyGame extends VariableFrameRateGame {
 			PhysicsObject cylinderP = (engine.getSceneGraph()).addPhysicsCylinder(
 				0.0f, tempTransform, 2.5f*radius, height/5.0f);
 			groundTiles.add(cylinderP);
+			Vector3f markerLoc = markerObject.getWorldLocation();
+			// double currentTime = elapsTime;
+			// boolean isMarkerThere = true;
+			// while (isMarkerThere){
+			// 	if (elapsTime - currentTime >= 5) {
+					// GameObject laser = new GameObject(GameObject.root(), laserS, laserTex);
+					// initialTranslation = (new Matrix4f()).translation(
+					// 	markerLoc.x(), markerLoc.y() + 20.0f, markerLoc.z());
+					// initialScale = (new Matrix4f()).scaling(100.0f);
+					// laser.setLocalTranslation(initialTranslation);
+					// laser.setLocalScale(initialScale);
+					// if (elapsTime - currentTime >= 6) {
+					// 	GameObject.root().removeChild(markerObject);
+					// 	GameObject.root().removeChild(laser);
+					// 	isMarkerThere = false;
+					// }
+				// }
+			// }
 			// movingObjects.add(markerObject);
 			protClient.sendCreateMarkerMessage(markerObject.getWorldLocation());
 			// --remainingMarkers;
@@ -861,6 +981,10 @@ public class MyGame extends VariableFrameRateGame {
 			missileObject.setLocalRotation(dol.getLocalRotation());
 			// missileObject.lookAt(dolDirection.x(), dolDirection.y(), dolDirection.z());
 			movingObjects.add(missileObject);
+
+			missileSound.setLocation(dolLocation);
+			missileSound.play();
+
 			protClient.sendCreateMissileMessage(missileObject.getWorldLocation());
 			--remainingMissiles;
 		}
@@ -878,6 +1002,9 @@ public class MyGame extends VariableFrameRateGame {
 		bulletObject.setLocalRotation(dol.getLocalRotation());
 		movingBullets.add(bulletObject);
 		protClient.sendCreateBulletMessage(bulletObject.getWorldLocation());
+
+		cannonSound.setLocation(dol.getWorldLocation());
+		cannonSound.play();
 	}
 
 	private void updateMovingBullets(float elapsedFramesPerSecond) {
@@ -1062,7 +1189,14 @@ public class MyGame extends VariableFrameRateGame {
 
 	public ObjShape getGhostShape() { return dolS; }
 	// TODO: send texture number through networking message
-	public TextureImage getGhostTexture() { return doltx1; }
+	public TextureImage getGhostTexture(int textureId) { 
+		if (textureId == 1) 
+		{
+			return doltx1;
+		} else {
+			return doltx2;
+		}
+	}
 	public ObjShape getMarkerShape() { return markerS; }
 	public TextureImage getMarkerTexture() { return bombTex; }
 	public ObjShape getMissileShape() { return missileShape; }
@@ -1092,7 +1226,15 @@ public class MyGame extends VariableFrameRateGame {
 			protClient.sendJoinMessage();
 		}
 	}
-	
+	@Override public void shutdown()
+	{	
+		System.out.println("shutting down");
+		if(protClient != null && isClientConnected == true)
+		{	
+			protClient.sendByeMessage();
+		}
+	}
+
 	protected void processNetworking(float elapsTime)
 	{	// Process packets received by the client from the server
 		if (protClient != null)
@@ -1125,20 +1267,23 @@ public class MyGame extends VariableFrameRateGame {
 		System.out.println("**************************\n");
 		System.out.println("\tCycle through avatar selection:\t\t\tz");
 		System.out.println("\tSelect current avatar:\t\t\tx");
-		System.out.println("\tMove Forward:\t\t\t\tW, Gamepad Left Joystick Y-axis up");
-		System.out.println("\tMove Backward:\t\t\t\tS, Gamepad Left Joystick Y-axis down");
-		System.out.println("\tYaw Left:\t\t\t\tA, Gamepad Left Joystick X-axis left");
-		System.out.println("\tYaw Right:\t\t\t\tD, Gamepad Left Joystick X-axis right");
-		System.out.println("\tRoll Left:\t\t\t\tQ");
-		System.out.println("\tRoll Right:\t\t\t\tE");
-		System.out.println("\tPitch Up:\t\t\t\tUp Arrow, Gamepad Button 0");
-		System.out.println("\tPitch Down:\t\t\t\tDown Arrow, Gamepad Button 1");
+		System.out.println("\tMove Forward:\t\t\t\tW, Gamepad Right Trigger");
+		System.out.println("\tMove Backward:\t\t\t\tS, Gamepad Left Trigger");
+		System.out.println("\tYaw Left:\t\t\t\tA, Gamepad Button 5 Left Bumper");
+		System.out.println("\tYaw Right:\t\t\t\tD, Gamepad Button 6 Right Bumper");
+		System.out.println("\tRoll Left:\t\t\t\tQ, Gamepad Left Joystick X-Axis left");
+		System.out.println("\tRoll Right:\t\t\t\tE, Gamepad Left Joystick X-Axis right");
+		System.out.println("\tPitch Up:\t\t\t\tUp Arrow, Gamepad Left Joystick Y-Axis down");
+		System.out.println("\tPitch Down:\t\t\t\tDown Arrow, Gamepad Left Joystick Y-Axis up");
 		System.out.println("\tCamera Rotate Left:\t\t\tGamepad Right Joystick RX-axis left");
 		System.out.println("\tCamera Rotate Right:\t\t\tGamepad Right Joystick RX-axis right");
 		System.out.println("\tCamera Elevation Up:\t\t\tGamepad Right Joystick RY-axis up");
 		System.out.println("\tCamera Elevation Down:\t\t\tGamepad Right Joystick RY-axis down");
-		System.out.println("\tCamera Zoom In:\t\t\t\tGamepad Button 2");
-		System.out.println("\tCamera Zoom Out:\t\t\tGamepad Button 3");
+		System.out.println("\tCamera Zoom In:\t\t\t\tGamepad Button 3");
+		System.out.println("\tCamera Zoom Out:\t\t\tGamepad Button 4");
+		System.out.println("\tFire Main Gun:\t\t\t\tGamepad Button 2");
+		System.out.println("\tFire Missile:\t\t\t\tGamepad Button 1");
+		System.out.println("\tDrop Marker:\t\t\t\tGamepad Button 8");
 		System.out.println("\tPan Mini-Map Up:\t\t\t0");
 		System.out.println("\tPan Mini-Map Right:\t\t\tP");
 		System.out.println("\tPan Mini-Map Down:\t\t\tL");
