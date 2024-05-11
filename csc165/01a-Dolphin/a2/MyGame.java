@@ -207,7 +207,7 @@ public class MyGame extends VariableFrameRateGame {
 			double ranAngle = Math.random() * 360;
 			float ranX = (float)Math.cos(ranAngle) * 25.0f;
 			float ranZ = (float)Math.sin(ranAngle) * 25.0f;
-			initialScale = (new Matrix4f()).scale(0.01f);
+			initialScale = (new Matrix4f()).scale(0.25f);
 			enemy.setLocalScale(initialScale);
 			initialTranslation = (new Matrix4f()).translation(ranX, bugHeightAdjust, ranZ);
 			enemy.setLocalTranslation(initialTranslation);
@@ -316,7 +316,7 @@ public class MyGame extends VariableFrameRateGame {
 		lastFrameTime = currFrameTime;
 		elapsTime = 0.0;
 		(engine.getRenderSystem()).setWindowDimensions(WindowSizeX, WindowSizeY);
-
+		enemyShape.playAnimation("WALK", 0.2f, AnimatedShape.EndType.LOOP, 0);
 		inputManager = engine.getInputManager();
 		String gamepadName = inputManager.getFirstGamepadName();
 		// Get all our controllers and print their info: name, type
@@ -587,8 +587,8 @@ public class MyGame extends VariableFrameRateGame {
 		} else {
 			Vector3f dolcoords = dol.getWorldLocation();
 			Vector3f dolFwd = dol.getLocalForwardVector();
-			Vector3f newLocation = dolcoords.add(dolFwd.mul(0.0006f * elapsedFramesPerSecond));
-			dol.setLocalLocation(newLocation);
+			//Vector3f newLocation = dolcoords.add(dolFwd.mul(0.0006f * elapsedFramesPerSecond));
+			//dol.setLocalLocation(newLocation);
 			arrangeHUD(elapsedFramesPerSecond);
 			inputManager.update(elapsedFramesPerSecond);
 			orbitController.updateCameraPosition();
@@ -911,7 +911,6 @@ public class MyGame extends VariableFrameRateGame {
 
 	private void updateMovingObjects(float elapsedFramesPerSecond) {
 		// First perform the scheduled object moves
-		enemyShape.playAnimation("WALK", 0.2f, AnimatedShape.EndType.LOOP, 0);
 		enemyShape.updateAnimation();
 		for (GameObject go: movingObjects) {
 			go.moveForwardBack(0.002f*elapsedFramesPerSecond, new Vector3f());
@@ -927,11 +926,11 @@ public class MyGame extends VariableFrameRateGame {
 		}
 		for (GameObject go: movingEnemies) {
 			go.lookAt(base);
-			go.moveForwardBack(0.0001f*elapsedFramesPerSecond, new Vector3f());
+			//go.moveForwardBack(0.0001f*elapsedFramesPerSecond, new Vector3f());
 			setObjectHeightAtLocation(go);
 			if (go.getWorldLocation().sub(base.getWorldLocation()).length() < 0.1) {
-				enemyShape.stopAnimation();
-				enemyShape.playAnimation("IDLE", 0.2f, AnimatedShape.EndType.LOOP, 0);
+				//enemyShape.stopAnimation();
+				//enemyShape.playAnimation("IDLE", 0.2f, AnimatedShape.EndType.LOOP, 0);
 				gameOver = 2;
 			}
 		}
