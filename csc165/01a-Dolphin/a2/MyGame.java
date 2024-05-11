@@ -57,6 +57,7 @@ public class MyGame extends VariableFrameRateGame {
 	private ArrayList<GameObject> movingBullets = new ArrayList<GameObject>();
 	private ArrayList<GameObject> movingEnemies = new ArrayList<GameObject>();
 	private ArrayList<GameObject> movingMarkers = new ArrayList<GameObject>();
+	private ArrayList<GameObject> laserMarkers = new ArrayList<GameObject>();
 	private AnimatedShape enemyShape;
 	private GameObject dol, selectAvatar1, selectAvatar2, base, torus, sphere, sphereSatellite, plane, groundPlane,
 			wAxisX, wAxisY, wAxisZ, manual, magnet, missileObj, tower, reloadingStation, bullet, marker, laser;
@@ -188,7 +189,7 @@ public class MyGame extends VariableFrameRateGame {
 	public void loadSounds() {
 		AudioResource bugSoundResource;
 		audioMgr = engine.getAudioManager();
-		// https://www.youtube.com/watch?v=CUdUsJS8bgw "Creepy Alien Bug Sound Effect" - Sound Effect Database
+		// https://pixabay.com/sound-effects/critters-creeping-32760/ "Critters creeping" - Pixabay
 		bugSoundResource = audioMgr.createAudioResource("assets/sounds/creepy_alien.wav", AudioResourceType.AUDIO_SAMPLE);
 		bugChitterSound = new Sound(bugSoundResource, SoundType.SOUND_EFFECT, 25, true);
 		bugChitterSound.initialize(audioMgr);
@@ -349,12 +350,14 @@ public class MyGame extends VariableFrameRateGame {
 
 		sphereLight = new Light();
 		sphereLight.setLocation(sphere.getWorldLocation());
-		sphereLight.setType(Light.LightType.SPOTLIGHT);
+		sphereLight.setType(Light.LightType.POSITIONAL);
 		sphereLight.setSpecular(1.0f, 0f, 0.5f);
 		sphereLight.setDiffuse(1.0f, 0f, 0.5f);
 		Vector3f beaconDirection = new Vector3f(0f, -1.0f, -1.0f);
 		sphereLight.setDirection(beaconDirection);
-		sphereLight.setCutoffAngle(15.0f);
+		sphereLight.setCutoffAngle(20.0f);
+		sphereLight.setConstantAttenuation(0f);
+		sphereLight.setLinearAttenuation(0.25f);
 		(engine.getSceneGraph()).addLight(sphereLight);
 	}
 
@@ -770,7 +773,14 @@ public class MyGame extends VariableFrameRateGame {
 				System.out.println("starting physics");
 				running = true;
 				break;
-
+			case KeyEvent.VK_6:
+				System.out.println("Turning off Tower Light");
+				sphereLight.setLinearAttenuation(10f);
+				break;
+			case KeyEvent.VK_7:
+				System.out.println("Turning on Tower Light");
+				sphereLight.setLinearAttenuation(0.25f);
+				break;
 			// Assignment A2, disable on/off dolphin Camera setting
 			// Camera is now an OrbitController3D and is always off dolphin
 			// case KeyEvent.VK_SPACE:
@@ -904,9 +914,19 @@ public class MyGame extends VariableFrameRateGame {
 		}
 	}
 
+	public void createLaserObjects(Vector3f loc) {
+		GameObject laser = new TemporaryGameObject(GameObject.root(), laserS, laserTex);
+		Matrix4f initialTranslation = (new Matrix4f()).translation(
+			loc.x(), loc.y() + 5.0f, loc.z());
+		Matrix4f initialScale = (new Matrix4f()).scaling(0.05f);
+		laser.setLocalTranslation(initialTranslation);
+		laser.setLocalScale(initialScale);
+		laserMarkers.add(laser);
+	}
+	
 	public void dropMarker(float speed) {
 		if (remainingMarkers > 0) {
-			GameObject markerObject = new GameObject(GameObject.root(), markerS, bombTex);
+			GameObject markerObject = new TemporaryGameObject(GameObject.root(), markerS, bombTex);
 			// missileObject.setParent(GameObject.root());
 			Vector3f dolLocation = dol.getWorldLocation();
 			Vector3f dolDirection = dol.getLocalForwardVector();
@@ -921,8 +941,8 @@ public class MyGame extends VariableFrameRateGame {
 			movingMarkers.add(markerObject);
 			// markerObject.getRenderStates().setModelOrientationCorrection(
 			// 	(new Matrix4f()).rotationY((float)java.lang.Math.toRadians(90.0f)));
-				
-			// Convert avatar transform to double array
+
+			// Convert avatar's transform to double array
 			// tempTransform = toDoubleArray(initialTranslation.rotateY(
 			// 	(float)java.lang.Math.toRadians(270.0f)).get(vals));
 			tempTransform = toDoubleArray(initialTranslation.get(vals));
@@ -942,25 +962,8 @@ public class MyGame extends VariableFrameRateGame {
 				0.0f, tempTransform, 2.5f*radius, height/5.0f);
 			groundTiles.add(cylinderP);
 			Vector3f markerLoc = markerObject.getWorldLocation();
-			// double currentTime = elapsTime;
-			// boolean isMarkerThere = true;
-			// while (isMarkerThere){
-			// 	if (elapsTime - currentTime >= 5) {
-					// GameObject laser = new GameObject(GameObject.root(), laserS, laserTex);
-					// initialTranslation = (new Matrix4f()).translation(
-					// 	markerLoc.x(), markerLoc.y() + 20.0f, markerLoc.z());
-					// initialScale = (new Matrix4f()).scaling(100.0f);
-					// laser.setLocalTranslation(initialTranslation);
-					// laser.setLocalScale(initialScale);
-					// if (elapsTime - currentTime >= 6) {
-					// 	GameObject.root().removeChild(markerObject);
-					// 	GameObject.root().removeChild(laser);
-					// 	isMarkerThere = false;
-					// }
-				// }
-			// }
-			// movingObjects.add(markerObject);
 			protClient.sendCreateMarkerMessage(markerObject.getWorldLocation());
+
 			// --remainingMarkers;
 		}
 	}
@@ -1045,12 +1048,27 @@ public class MyGame extends VariableFrameRateGame {
 			protClient.sendMissileRotationMessage(go.getWorldRotation());
 			
 		}
-		for (GameObject go: movingMarkers) {
+
+		for (GameObject go: new ArrayList<GameObject>(movingMarkers)) {
 			go.moveForwardBack(0.002f*elapsedFramesPerSecond, new Vector3f());
 			protClient.sendMoveMarkerMessage(go.getWorldLocation());
 			protClient.sendMarkerRotationMessage(go.getWorldRotation());
-			
+			((TemporaryGameObject)go).setLifetime(((TemporaryGameObject)go).getLifetime() + elapsedFramesPerSecond);
+			if (((TemporaryGameObject)go).getLifetime() > 10000) {
+				GameObject.root().removeChild(go);
+				movingMarkers.remove(go);
+				createLaserObjects(go.getWorldLocation());
+			}
 		}
+
+		for (GameObject go: new ArrayList<GameObject>(laserMarkers)) {
+			((TemporaryGameObject)go).setLifetime(((TemporaryGameObject)go).getLifetime() + elapsedFramesPerSecond);
+			if (((TemporaryGameObject)go).getLifetime() > 5000) {
+				GameObject.root().removeChild(go);
+				laserMarkers.remove(go);
+			}
+		}
+
 		for (GameObject go: movingEnemies) {
 			go.lookAt(base);
 			//go.moveForwardBack(0.0001f*elapsedFramesPerSecond, new Vector3f());
@@ -1291,8 +1309,11 @@ public class MyGame extends VariableFrameRateGame {
 		System.out.println("\tMini-Map Zoom In:\t\t\t]");
 		System.out.println("\tMini-Map Zoom Out:\t\t\t[");
 		System.out.println("\tToggle World Axes On/Off:\t\t1");
-		System.out.println("\tDolphin Wireframe On:\t\t\t2");
-		System.out.println("\tDolphin Wireframe Off:\t\t\t3");
+		System.out.println("\tJet Wireframe On:\t\t\t2");
+		System.out.println("\tJet Wireframe Off:\t\t\t3");
+		System.out.println("\tStarting physics:\t\t\t5 (On by Default)");
+		System.out.println("\tTurning off Tower Light:\t\t\t6");
+		System.out.println("\tTurning on Tower Light:\t\t\t7");
 		System.out.println("\tExit Game:\t\t\t\tESC");
 	}
 }
