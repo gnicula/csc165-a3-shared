@@ -16,8 +16,6 @@ import tage.audio.*;
 import tage.physics.PhysicsEngine;
 import tage.physics.PhysicsObject;
 import tage.physics.JBullet.*;
-import tage.rml.Matrix4f;
-import tage.rml.Vector3f;
 
 import com.bulletphysics.dynamics.RigidBody;
 import com.bulletphysics.collision.dispatch.CollisionObject;
