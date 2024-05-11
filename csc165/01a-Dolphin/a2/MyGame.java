@@ -16,6 +16,8 @@ import tage.audio.*;
 import tage.physics.PhysicsEngine;
 import tage.physics.PhysicsObject;
 import tage.physics.JBullet.*;
+import tage.rml.Matrix4f;
+import tage.rml.Vector3f;
 
 import com.bulletphysics.dynamics.RigidBody;
 import com.bulletphysics.collision.dispatch.CollisionObject;
@@ -188,7 +190,7 @@ public class MyGame extends VariableFrameRateGame {
 	public void loadSounds() {
 		AudioResource bugSoundResource;
 		audioMgr = engine.getAudioManager();
-		// https://www.youtube.com/watch?v=CUdUsJS8bgw "Creepy Alien Bug Sound Effect" - Sound Effect Database
+		// https://pixabay.com/sound-effects/critters-creeping-32760/ "Critters creeping" - Pixabay
 		bugSoundResource = audioMgr.createAudioResource("assets/sounds/creepy_alien.wav", AudioResourceType.AUDIO_SAMPLE);
 		bugChitterSound = new Sound(bugSoundResource, SoundType.SOUND_EFFECT, 25, true);
 		bugChitterSound.initialize(audioMgr);
