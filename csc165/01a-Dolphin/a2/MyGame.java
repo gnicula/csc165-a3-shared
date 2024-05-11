@@ -778,7 +778,7 @@ public class MyGame extends VariableFrameRateGame {
 				break;
 			case KeyEvent.VK_7:
 				System.out.println("Turning on Tower Light");
-				sphereLight.setLinearAttenuation(.25);
+				sphereLight.setLinearAttenuation(0.25f);
 				break;
 			// Assignment A2, disable on/off dolphin Camera setting
 			// Camera is now an OrbitController3D and is always off dolphin
