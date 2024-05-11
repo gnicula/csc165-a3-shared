@@ -32,7 +32,7 @@ public class ProtocolClient extends GameConnectionClient
 	@Override
 	protected void processPacket(Object message)
 	{	String strMessage = (String)message;
-		System.out.println("message received -->" + strMessage);
+		// System.out.println("message received -->" + strMessage);
 		if (strMessage == null) { // || strMessage.trim().isEmpty()) {
 			return;
 		}
@@ -47,7 +47,7 @@ public class ProtocolClient extends GameConnectionClient
 			{	if(messageTokens[1].compareTo("success") == 0)
 				{	System.out.println("join success confirmed");
 					game.setIsConnected(true);
-					sendCreateMessage(game.getPlayerPosition());
+					sendCreateMessage(game.getPlayerPosition(), game.getSelectedAvatar());
 				}
 				if(messageTokens[1].compareTo("failure") == 0)
 				{	System.out.println("join failure confirmed");
@@ -59,6 +59,7 @@ public class ProtocolClient extends GameConnectionClient
 			if(messageTokens[0].compareTo("bye") == 0)
 			{	// remove ghost avatar with id = remoteId
 				// Parse out the id into a UUID
+				System.out.println("Player Leaving");
 				UUID ghostID = UUID.fromString(messageTokens[1]);
 				ghostManager.removeGhostAvatar(ghostID);
 			}
@@ -78,9 +79,15 @@ public class ProtocolClient extends GameConnectionClient
 					Float.parseFloat(messageTokens[2]),
 					Float.parseFloat(messageTokens[3]),
 					Float.parseFloat(messageTokens[4]));
+				
+				// int textureId = 1;
+				// if (messageTokens[0].compareTo("create") == 0) {
+					System.out.println(messageTokens[0] + " message Received with Avatar ID: " + messageTokens[5]);
+					int textureId = Integer.parseInt(messageTokens[5]);
+				// }
 
 				try
-				{	ghostManager.createGhostAvatar(ghostID, ghostPosition);
+				{	ghostManager.createGhostAvatar(ghostID, ghostPosition, textureId);
 				}	catch (IOException e)
 				{	System.out.println("error creating ghost avatar");
 				}
@@ -381,12 +388,13 @@ public class ProtocolClient extends GameConnectionClient
 	// with the server.
 	// Message Format: (create,localId,x,y,z) where x, y, and z represent the position
 
-	public void sendCreateMessage(Vector3f position)
+	public void sendCreateMessage(Vector3f position, int textureID)
 	{	try 
 		{	String message = new String("create," + id.toString());
 			message += "," + position.x();
 			message += "," + position.y();
 			message += "," + position.z();
+			message += "," + textureID;
 			
 			sendPacket(message);
 		} catch (IOException e) 
@@ -405,7 +413,8 @@ public class ProtocolClient extends GameConnectionClient
 			message += "," + position.x();
 			message += "," + position.y();
 			message += "," + position.z();
-			
+			message += "," + game.getSelectedAvatar();
+
 			sendPacket(message);
 		} catch (IOException e) 
 		{	e.printStackTrace();
