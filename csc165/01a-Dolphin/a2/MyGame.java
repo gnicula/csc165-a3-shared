@@ -915,7 +915,7 @@ public class MyGame extends VariableFrameRateGame {
 
 	public void dropMarker(float speed) {
 		if (remainingMarkers > 0) {
-			GameObject markerObject = new GameObject(GameObject.root(), markerS, bombTex);
+			GameObject markerObject = new MarkerGameObject(GameObject.root(), markerS, bombTex);
 			// missileObject.setParent(GameObject.root());
 			Vector3f dolLocation = dol.getWorldLocation();
 			Vector3f dolDirection = dol.getLocalForwardVector();
@@ -930,8 +930,8 @@ public class MyGame extends VariableFrameRateGame {
 			movingMarkers.add(markerObject);
 			// markerObject.getRenderStates().setModelOrientationCorrection(
 			// 	(new Matrix4f()).rotationY((float)java.lang.Math.toRadians(90.0f)));
-				
-			// Convert avatar transform to double array
+
+			// Convert avatar's transform to double array
 			// tempTransform = toDoubleArray(initialTranslation.rotateY(
 			// 	(float)java.lang.Math.toRadians(270.0f)).get(vals));
 			tempTransform = toDoubleArray(initialTranslation.get(vals));
@@ -951,6 +951,7 @@ public class MyGame extends VariableFrameRateGame {
 				0.0f, tempTransform, 2.5f*radius, height/5.0f);
 			groundTiles.add(cylinderP);
 			Vector3f markerLoc = markerObject.getWorldLocation();
+			protClient.sendCreateMarkerMessage(markerObject.getWorldLocation());
 			// double currentTime = elapsTime;
 			// boolean isMarkerThere = true;
 			// while (isMarkerThere){
@@ -969,7 +970,6 @@ public class MyGame extends VariableFrameRateGame {
 				// }
 			// }
 			// movingObjects.add(markerObject);
-			protClient.sendCreateMarkerMessage(markerObject.getWorldLocation());
 			// --remainingMarkers;
 		}
 	}
@@ -1054,10 +1054,15 @@ public class MyGame extends VariableFrameRateGame {
 			protClient.sendMissileRotationMessage(go.getWorldRotation());
 			
 		}
-		for (GameObject go: movingMarkers) {
+		for (GameObject go: new ArrayList<GameObject>(movingMarkers)) {
 			go.moveForwardBack(0.002f*elapsedFramesPerSecond, new Vector3f());
 			protClient.sendMoveMarkerMessage(go.getWorldLocation());
 			protClient.sendMarkerRotationMessage(go.getWorldRotation());
+			((MarkerGameObject)go).setLifetime(((MarkerGameObject)go).getLifetime() + elapsedFramesPerSecond);
+			if (((MarkerGameObject)go).getLifetime() > 1000) {
+				GameObject.root().removeChild(go);
+				movingMarkers.remove(go);
+			}
 			
 		}
 		for (GameObject go: movingEnemies) {
