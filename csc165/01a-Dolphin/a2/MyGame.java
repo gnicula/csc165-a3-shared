@@ -420,8 +420,8 @@ public class MyGame extends VariableFrameRateGame {
 		// groundPlane.setPhysicsObject(planeP);
 
 		// For debugging physics
-		engine.enableGraphicsWorldRender();
-		engine.enablePhysicsWorldRender();
+		//engine.enableGraphicsWorldRender();
+		//engine.enablePhysicsWorldRender();
 
 		// ---------- Setting up sound -----------
 		setEarParameters();
@@ -834,7 +834,7 @@ public class MyGame extends VariableFrameRateGame {
 	// For A2 this should always return false.
 	/** For dismounting and mounting the dolphin.
 	 * Returns a boolean.
-	 * @deprecated
+	 * 
 	 * @return
 	 */
 	public boolean onDolphinCam() {
@@ -843,7 +843,7 @@ public class MyGame extends VariableFrameRateGame {
 
 	// No calls are made to this method for A2
 	/**  Sets the camera in a fixed position above and behind the dolphin if the avatar is mounted.
-	 * @deprecated
+	 * 
 	 * 
 	*/
 	public void setOnDolphinCam() {
@@ -866,7 +866,7 @@ public class MyGame extends VariableFrameRateGame {
 	/**  Sets the camera in a fixed position above and behind the dolphin when the Avatar dismounts.
 	 *
 	 * The camera will no longer follow the dolphin.
-	 * 	@deprecated
+	 * 	
 	 * 
 	 */
 	public void setOffDolphinCam() {
@@ -892,7 +892,7 @@ public class MyGame extends VariableFrameRateGame {
 	}
 
 	/** Used when the dolphin collects magnets. Adds them as children to the manual object required in A2.
-	 * @deprecated
+	 * 
 	 * @param n_magnet
 	 *
 	 */
@@ -921,7 +921,7 @@ public class MyGame extends VariableFrameRateGame {
 
 	/** Used when the dolphin is close to magnets to check if they should be picked up.
 	 * 
-	 * @deprecated
+	 * 
 	 * @param gObject
 	 * @return
 	 */
@@ -939,7 +939,7 @@ public class MyGame extends VariableFrameRateGame {
 	}
 	/** Updates the dolphin score based on whether they have visited specific sites in A2.
 	 * 
-	 * @deprecated
+	 * 
 	 * 
 	 */
 	private void updateDolphinScore() {
@@ -969,7 +969,7 @@ public class MyGame extends VariableFrameRateGame {
 
 	/** Toggles node controllers required in A2.
 	 * 
-	 * @deprecated
+	 * 
 	 * 
 	 */
 	private void toggleNodeControllers() {

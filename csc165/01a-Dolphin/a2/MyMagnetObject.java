@@ -6,7 +6,7 @@ import tage.shapes.*;
 import org.joml.*;
 /** Magnets for project A2
  * @author Gabriele Nicula
- * @deprecated
+ * 
  */
 
 public class MyMagnetObject extends ManualObject {

@@ -5,7 +5,7 @@ import tage.shapes.*;
 
 /**
  * Manual object for A2
- * @deprecated
+ * 
  * @author Gabriele Nicula
  */
 public class MyManualObject extends ManualObject {
