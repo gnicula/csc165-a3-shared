@@ -659,7 +659,9 @@ public class MyGame extends VariableFrameRateGame {
 		// System.out.println("viewport2 actual left: " + secondaryViewportAbsoluteLeft);
 		float secondaryViewportAbsoluteBottom = engine.getRenderSystem().getViewport("RIGHT").getActualBottom();
 		// System.out.println("viewport2 actual bottom: " + secondaryViewportAbsoluteBottom);
-
+		if (gameOver == 2) {
+			dispStr1 = counterStr;
+		}
 		hud1x = (int)(mainViewportAbsoluteLeft) + 10;
 		hud1y = 10;
 		(engine.getHUDmanager()).setHUD1(dispStr1, hud1Color, hud1x, hud1y);
@@ -1192,7 +1194,9 @@ public class MyGame extends VariableFrameRateGame {
 			go.lookAt(base);
 			
 			setObjectHeightAtLocation(go);
-			if (go.getWorldLocation().sub(base.getWorldLocation()).length() < 2) {
+			Vector3f baseLocation = base.getWorldLocation();
+			if (go.getWorldLocation().sub(
+				baseLocation.x(), go.getWorldLocation().y(), baseLocation.z()).length() < 2.0f) {
 				//enemyShape.stopAnimation();
 				//enemyShape.playAnimation("IDLE", 0.2f, AnimatedShape.EndType.LOOP, 0);
 				gameOver = 2;
