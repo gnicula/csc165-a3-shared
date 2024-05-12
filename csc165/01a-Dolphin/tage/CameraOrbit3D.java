@@ -51,8 +51,8 @@ public class CameraOrbit3D {
     private void setupInputs(String gp) {
         OrbitAzimuthAction azmAction = new OrbitAzimuthAction(1f);
         OrbitElevationAction elevAction = new OrbitElevationAction(1f);
-        OrbitAzimuthAction azmRight = new OrbitAzimuthAction(1f);
-        OrbitAzimuthAction azmLeft = new OrbitAzimuthAction(-1f);
+        OrbitAzimuthAction azmRight = new OrbitAzimuthAction(-1f);
+        OrbitAzimuthAction azmLeft = new OrbitAzimuthAction(1f);
         OrbitElevationAction elevUp = new OrbitElevationAction(1f);
         OrbitElevationAction elevDown = new OrbitElevationAction(-1f);
         OrbitZoomAction zoomIn = new OrbitZoomAction(-0.0002f);
