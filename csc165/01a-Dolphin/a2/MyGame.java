@@ -729,7 +729,7 @@ public class MyGame extends VariableFrameRateGame {
 			updateMovingObjects(elapsedFramesPerSecond);
 			updateMovingBullets(elapsedFramesPerSecond);
 			
-			// avatarGroundCollision();
+			avatarGroundCollision();
 			protClient.sendRotationMessage(dol.getWorldRotation());
 			protClient.sendMoveMessage(dol.getWorldLocation()); //TODO optimiz?e this message
 			processNetworking((float)elapsTime);
@@ -1444,9 +1444,9 @@ public class MyGame extends VariableFrameRateGame {
 		System.out.println("\tCamera Elevation Down:\t\t\tF, Gamepad Right Joystick RY-axis down");
 		System.out.println("\tCamera Zoom In:\t\t\t\tGamepad Button 3");
 		System.out.println("\tCamera Zoom Out:\t\t\tGamepad Button 4");
-		System.out.println("\tFire Main Gun:\t\t\t\tGamepad Button 2");
-		System.out.println("\tFire Missile:\t\t\t\tGamepad Button 1");
-		System.out.println("\tDrop Marker:\t\t\t\tGamepad Button 8");
+		System.out.println("\tFire Main Gun:\t\t\t\tC, Gamepad Button 2");
+		System.out.println("\tFire Missile:\t\t\t\tSpacebar, Gamepad Button 1");
+		System.out.println("\tDrop Marker:\t\t\t\tV, Gamepad Button 8");
 		System.out.println("\tPan Mini-Map Up:\t\t\t0");
 		System.out.println("\tPan Mini-Map Right:\t\t\tP");
 		System.out.println("\tPan Mini-Map Down:\t\t\tL");
