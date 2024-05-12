@@ -11,12 +11,15 @@ import java.util.Vector;
 import org.joml.*;
 
 import tage.*;
+import tage.audio.*;
+
 /**
  * The GhostManager keeps track of all ghost objectsl, such as markers, missiles, and avatars.
  */
 public class GhostManager
 {
 	private MyGame game;
+	private Sound ghostSound;
 	private HashMap<UUID, GhostAvatar> ghostAvatars = new HashMap<UUID, GhostAvatar>();
 	private HashMap<UUID, GhostNPC> ghostNPCS = new HashMap<UUID, GhostNPC>();
 	private HashMap<UUID, GhostMarker> ghostMarkers = new HashMap<UUID, GhostMarker>();
@@ -32,12 +35,30 @@ public class GhostManager
 		System.out.println("adding ghost with ID --> " + id);
 		ObjShape s = game.getGhostShape();
 		TextureImage t = game.getGhostTexture(textureId);
+
 		GhostAvatar newAvatar = new GhostAvatar(id, s, t, position);
 		Matrix4f initialScale = (new Matrix4f()).scaling(0.05f);
 		newAvatar.setLocalScale(initialScale);
 		ghostAvatars.put(id, newAvatar);
+
+		playGhostAvatarSound(id);
 	}
-	
+
+	public void playGhostAvatarSound(UUID id) 
+	{
+		IAudioManager audioMgr = game.getEngine().getAudioManager();
+		AudioResource jetIdleSoundResource = audioMgr.createAudioResource("assets/sounds/jetIdle.wav",
+			AudioResourceType.AUDIO_SAMPLE);
+		ghostSound = new Sound(
+			jetIdleSoundResource, SoundType.SOUND_EFFECT, 60, true);
+		ghostSound.initialize(audioMgr);
+		ghostSound.setMaxDistance(10.0f);
+		ghostSound.setMinDistance(0.3f);
+		ghostSound.setRollOff(50.0f);
+		ghostSound.setLocation(ghostAvatars.get(id).getWorldLocation());
+		ghostSound.play();
+	}
+
 	public void removeGhostAvatar(UUID id)
 	{	
 		GhostAvatar ghostAvatar = ghostAvatars.get(id);
@@ -55,6 +76,7 @@ public class GhostManager
 		GhostAvatar ghostAvatar = ghostAvatars.get(id);
 		if (ghostAvatar != null)
 		{	ghostAvatar.setPosition(position);
+			ghostSound.setLocation(position);
 		}
 		else
 		{	System.out.println("tried to update ghost avatar position, but unable to find ghost in list");

@@ -100,7 +100,7 @@ public class CameraOrbit3D {
         double avatarAngle = Math.toDegrees((double)
             avatarRot.angleSigned(new Vector3f(0,0,-1), new Vector3f(0,1,0)));
         float totalAz = cameraAzimuth - (float)avatarAngle;
-        double theta = Math.toRadians(cameraAzimuth);
+        double theta = Math.toRadians(totalAz);
         double phi = Math.toRadians(cameraElevation);
         float x = cameraRadius * (float)(Math.cos(phi) * Math.sin(theta));
         float y = cameraRadius * (float)(Math.sin(phi));
