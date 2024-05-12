@@ -1166,12 +1166,15 @@ public class MyGame extends VariableFrameRateGame {
 
 		for (GameObject go: movingEnemies) {
 			go.lookAt(base);
-			go.moveForwardBack(0.0001f*elapsedFramesPerSecond, new Vector3f());
+			
 			setObjectHeightAtLocation(go);
-			if (go.getWorldLocation().sub(base.getWorldLocation()).length() < 1) {
+			if (go.getWorldLocation().sub(base.getWorldLocation()).length() < 2) {
 				//enemyShape.stopAnimation();
 				//enemyShape.playAnimation("IDLE", 0.2f, AnimatedShape.EndType.LOOP, 0);
 				gameOver = 2;
+			}
+			else{
+				go.moveForwardBack(0.0001f*elapsedFramesPerSecond, new Vector3f());
 			}
 		}
 		// Now we have to check for collisions
