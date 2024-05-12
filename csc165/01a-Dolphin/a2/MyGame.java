@@ -689,8 +689,8 @@ public class MyGame extends VariableFrameRateGame {
 		} else {
 			Vector3f dolcoords = dol.getWorldLocation();
 			Vector3f dolFwd = dol.getLocalForwardVector();
-			//Vector3f newLocation = dolcoords.add(dolFwd.mul(0.0006f * elapsedFramesPerSecond));
-			//dol.setLocalLocation(newLocation);
+			Vector3f newLocation = dolcoords.add(dolFwd.mul(0.0006f * elapsedFramesPerSecond));
+			dol.setLocalLocation(newLocation);
 			arrangeHUD(elapsedFramesPerSecond);
 			inputManager.update(elapsedFramesPerSecond);
 			orbitController.updateCameraPosition();
