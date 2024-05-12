@@ -262,8 +262,8 @@ public class MyGame extends VariableFrameRateGame {
 		for (int i = 0; i < numEnemies; ++i) {
 			GameObject enemy = new GameObject(GameObject.root(), enemyShape, enemyTexture);
 			double ranAngle = Math.random() * 360;
-			float ranX = (float)Math.cos(ranAngle) * 25.0f;
-			float ranZ = (float)Math.sin(ranAngle) * 25.0f;
+			float ranX = (float)Math.cos(ranAngle) * 20.0f;
+			float ranZ = (float)Math.sin(ranAngle) * 20.0f;
 			initialScale = (new Matrix4f()).scale(0.25f);
 			enemy.setLocalScale(initialScale);
 			initialTranslation = (new Matrix4f()).translation(ranX, bugHeightAdjust, ranZ);
@@ -986,8 +986,8 @@ public class MyGame extends VariableFrameRateGame {
 	public void createLaserObjects(Vector3f loc) {
 		GameObject laser = new TemporaryGameObject(GameObject.root(), laserS, laserTex);
 		Matrix4f initialTranslation = (new Matrix4f()).translation(
-			loc.x(), loc.y() + 5.0f, loc.z());
-		Matrix4f initialScale = (new Matrix4f()).scaling(0.05f);
+			loc.x(), loc.y(), loc.z());
+		Matrix4f initialScale = (new Matrix4f()).scaling(.8f);
 		laser.setLocalTranslation(initialTranslation);
 		laser.setLocalScale(initialScale);
 		laserMarkers.add(laser);
@@ -1106,6 +1106,7 @@ public class MyGame extends VariableFrameRateGame {
 		ListIterator<GameObject> iterMoving = movingBullets.listIterator();
 		while (iterMoving.hasNext()) {
 			GameObject goMoving = iterMoving.next();
+			float ballisticRange = dol.getWorldLocation().sub(goMoving.getWorldLocation()).length();
 			ListIterator<GameObject> iterEnemies = movingEnemies.listIterator();
 			while (iterEnemies.hasNext()) {
 				GameObject goEnemy = iterEnemies.next();
@@ -1120,8 +1121,12 @@ public class MyGame extends VariableFrameRateGame {
 					engine.getSceneGraph().removeGameObject(goMoving);
 				}
 			}
-			// TODO: Check if out of boundary and remove object
-		} 
+			if (ballisticRange > 25.0f) {
+				GameObject.root().removeChild(goMoving);
+				iterMoving.remove();
+				engine.getSceneGraph().removeGameObject(goMoving);
+			} 
+		}
 	}
 	/** Handles movements for moving entities, such as missiles, bullets, and enemies, and sends corresponding messages to the server to render them for other clients.
 	 * Enemies are not synchronized across clients, and all clients have their own enemies to shoot.
@@ -1173,6 +1178,7 @@ public class MyGame extends VariableFrameRateGame {
 		ListIterator<GameObject> iterMoving = movingObjects.listIterator();
 		while (iterMoving.hasNext()) {
 			GameObject goMoving = iterMoving.next();
+			float missileRange = dol.getWorldLocation().sub(goMoving.getWorldLocation()).length();
 			ListIterator<GameObject> iterEnemies = movingEnemies.listIterator();
 			while (iterEnemies.hasNext()) {
 				GameObject goEnemy = iterEnemies.next();
@@ -1185,9 +1191,13 @@ public class MyGame extends VariableFrameRateGame {
 					iterEnemies.remove();
 					engine.getSceneGraph().removeGameObject(goEnemy);
 					engine.getSceneGraph().removeGameObject(goMoving);
-				}
+				}  
 			}
-			// TODO: Check if out of boundary and remove object
+			if (missileRange > 40.0f) {
+				GameObject.root().removeChild(goMoving);
+				iterMoving.remove();
+				engine.getSceneGraph().removeGameObject(goMoving);
+			}
 		} 
 	}
 	/** Checks if the avatar has collided with the ground and corrects location.
