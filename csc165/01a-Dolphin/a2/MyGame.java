@@ -18,6 +18,7 @@ import tage.physics.JBullet.*;
 import com.bulletphysics.dynamics.RigidBody;
 import com.bulletphysics.collision.dispatch.CollisionObject;
 
+import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.ListIterator;
 import java.util.concurrent.TimeUnit;
@@ -47,6 +48,7 @@ public class MyGame extends VariableFrameRateGame {
 	private boolean axesRenderState = true;
 	private boolean inSelectionScreen = true;
 	private boolean[] visitedSites = new boolean[4]; // default initialized to false
+	private final int numEnemies = 5;
 	private int counter = 0;
 	private int gameOver = 0;
 	private int frameCounter = 0;
@@ -60,6 +62,7 @@ public class MyGame extends VariableFrameRateGame {
 	private ArrayList<GameObject> movingEnemies = new ArrayList<GameObject>();
 	private ArrayList<GameObject> movingMarkers = new ArrayList<GameObject>();
 	private ArrayList<GameObject> laserMarkers = new ArrayList<GameObject>();
+	private HashMap<GameObject, Sound> bugSounds = new HashMap<GameObject, Sound>();
 	private AnimatedShape enemyShape;
 	private GameObject dol, selectAvatar1, selectAvatar2, base, torus, sphere, sphereSatellite, plane, groundPlane,
 			wAxisX, wAxisY, wAxisZ, manual, magnet, missileObj, tower, reloadingStation, bullet, marker, laser, targeter;
@@ -79,7 +82,7 @@ public class MyGame extends VariableFrameRateGame {
 	private Vector3f right; // u-vector/x-axis
 
 	private IAudioManager audioMgr;
-	private Sound bugChitterSound, selectAvatarSound, cannonSound, jetIdleSound, jetABSound, missileSound, comonaBGMSound,
+	private Sound selectAvatarSound, cannonSound, jetIdleSound, jetABSound, missileSound, comonaBGMSound,
 			zeroBGMSound;
 	public boolean isAfterBurnerOn = false;
 
@@ -201,59 +204,62 @@ public class MyGame extends VariableFrameRateGame {
 		audioMgr = engine.getAudioManager();
 		// https://pixabay.com/sound-effects/critters-creeping-32760/ "Critters creeping" - Pixabay
 		bugSoundResource = audioMgr.createAudioResource("assets/sounds/creepy_alien.wav", AudioResourceType.AUDIO_SAMPLE);
-		bugChitterSound = new Sound(bugSoundResource, SoundType.SOUND_EFFECT, 25, true);
-		bugChitterSound.initialize(audioMgr);
-		bugChitterSound.setMaxDistance(5.0f);
-		bugChitterSound.setMinDistance(1.0f);
-		bugChitterSound.setRollOff(100.0f);
-
+		for (GameObject go : movingEnemies) {
+			Sound bugChitterSound = new Sound(bugSoundResource, SoundType.SOUND_EFFECT, 50, true);
+			bugChitterSound.initialize(audioMgr);
+			bugChitterSound.setMaxDistance(4.0f);
+			bugChitterSound.setMinDistance(0.5f);
+			bugChitterSound.setRollOff(40.0f);
+			bugSounds.put(go, bugChitterSound);
+		}
+		
 		// https://opengameart.org/content/toom-click - CC BY 4.0 DEED
 		AudioResource selectAvatarSoundResource = audioMgr.createAudioResource(
 			"assets/sounds/toom_click.wav", AudioResourceType.AUDIO_SAMPLE);
 		selectAvatarSound = new Sound(
-			selectAvatarSoundResource, SoundType.SOUND_EFFECT, 35, false);
+			selectAvatarSoundResource, SoundType.SOUND_EFFECT, 90, false);
 		selectAvatarSound.initialize(audioMgr);
 
 		// https://www.youtube.com/watch?v=SN4jfxckQiM "M61 Vulcan  BRRRRRT Sound" - Century
 		AudioResource cannonSoundResource = audioMgr.createAudioResource("assets/sounds/cannon.wav",
 			AudioResourceType.AUDIO_SAMPLE);
 		cannonSound = new Sound(
-			cannonSoundResource, SoundType.SOUND_EFFECT, 30, false);
+			cannonSoundResource, SoundType.SOUND_EFFECT, 95, false);
 		cannonSound.initialize(audioMgr);
 
 		// https://www.youtube.com/watch?v=jQIwmKEZby4 "F-15 VARIABLE AREA NOZZLE" - KOSKEI AEROSPACE
 		AudioResource jetIdleSoundResource = audioMgr.createAudioResource("assets/sounds/jetIdle.wav",
 			AudioResourceType.AUDIO_SAMPLE);
 		jetIdleSound = new Sound(
-			jetIdleSoundResource, SoundType.SOUND_EFFECT, 10, false);
+			jetIdleSoundResource, SoundType.SOUND_EFFECT, 30, false);
 		jetIdleSound.initialize(audioMgr);
 
 		// https://www.youtube.com/watch?v=TBi3sUvmOd4 " F-15 & F-16 Full Afterburner Test on the Ground (Afterburner Run)" - USA Military Channel
 		AudioResource jetABSoundResource = audioMgr.createAudioResource("assets/sounds/jetAB.wav",
 			AudioResourceType.AUDIO_SAMPLE);
 		jetABSound = new Sound(
-			jetABSoundResource, SoundType.SOUND_EFFECT, 12, false);
+			jetABSoundResource, SoundType.SOUND_EFFECT, 50, false);
 		jetABSound.initialize(audioMgr);
 
 		// https://soundbible.com/1794-Missle-Launch.html "Missle Launch" -  Kibblesbob
 		AudioResource missileSoundResource = audioMgr.createAudioResource("assets/sounds/missileSound.wav",
 			AudioResourceType.AUDIO_SAMPLE);
 		missileSound = new Sound(
-			missileSoundResource, SoundType.SOUND_EFFECT, 10, false);
+			missileSoundResource, SoundType.SOUND_EFFECT, 75, false);
 		missileSound.initialize(audioMgr);
 
 		// https://pixabay.com/music/metal-melodic-metal-186403/ "Melodic Metal" - AudioDollar
 		AudioResource comonaBGMResource = audioMgr.createAudioResource("assets/sounds/melodicMetal.wav",
-			AudioResourceType.AUDIO_SAMPLE);
+			AudioResourceType.AUDIO_STREAM);
 		comonaBGMSound = new Sound(
-			comonaBGMResource, SoundType.SOUND_MUSIC, 15, true);
+			comonaBGMResource, SoundType.SOUND_MUSIC, 25, true);
 		comonaBGMSound.initialize(audioMgr);
 
 		// https://pixabay.com/music/rock-crag-hard-rock-14401/ "Crag - Hard Rock" AlexGrohl
 		AudioResource zeroBGMResource = audioMgr.createAudioResource("assets/sounds/cragHR.wav",
-			AudioResourceType.AUDIO_SAMPLE);
+			AudioResourceType.AUDIO_STREAM);
 		zeroBGMSound = new Sound(
-			zeroBGMResource, SoundType.SOUND_MUSIC, 15, true);
+			zeroBGMResource, SoundType.SOUND_MUSIC, 25, true);
 		zeroBGMSound.initialize(audioMgr);
 	}
 
@@ -290,13 +296,13 @@ public class MyGame extends VariableFrameRateGame {
 
 		// build avatar selection
 		selectAvatar1 = new GameObject(GameObject.root(), dolS, doltx1);
-		selectAvatar1.setLocalTranslation((new Matrix4f()).translation(-0.5f, 15.25f, 0.25f));
+		selectAvatar1.setLocalTranslation((new Matrix4f()).translation(-0.6f, 15.25f, 0.25f));
 		selectAvatar1.setLocalScale((new Matrix4f()).scaling(0.1f));
 		selectAvatar1.getRenderStates()
 				.setModelOrientationCorrection((new Matrix4f()).rotationY((float) java.lang.Math.toRadians(90.0f)));
 
 		selectAvatar2 = new GameObject(GameObject.root(), dolS, doltx2);
-		selectAvatar2.setLocalTranslation((new Matrix4f()).translation(0.5f, 15.25f, 0.25f));
+		selectAvatar2.setLocalTranslation((new Matrix4f()).translation(0.6f, 15.25f, 0.25f));
 		selectAvatar2.setLocalScale((new Matrix4f()).scaling(0.1f));
 		selectAvatar2.getRenderStates()
 				.setModelOrientationCorrection((new Matrix4f()).rotationY((float) java.lang.Math.toRadians(270.0f)));
@@ -335,7 +341,7 @@ public class MyGame extends VariableFrameRateGame {
 		reloadingStation.setLocalTranslation(initialTranslationM);
 		reloadingStation.setLocalScale(initialScaleM);
 
-		buildEnemyObjects(5);
+		buildEnemyObjects(numEnemies);
 
 		// Build World Axis Lines (X, Y, Z) in the center of the window
 		wAxisX = new GameObject(GameObject.root(), wAxisLineShapeX);
@@ -423,21 +429,20 @@ public class MyGame extends VariableFrameRateGame {
 		//engine.enableGraphicsWorldRender();
 		//engine.enablePhysicsWorldRender();
 
-		// ---------- Setting up sound -----------
-		setEarParameters();
-		for (int i = 0; i < movingEnemies.size(); ++i) {
-			bugChitterSound.setLocation(movingEnemies.get(i).getLocalLocation());
-			bugChitterSound.play();
-		}
-
 		// ------------- positioning the camera -------------
 		myCamera = engine.getRenderSystem().getViewport("MAIN").getCamera();
-
 		// CameraOrbit3D initialization
 		orbitController = new CameraOrbit3D(myCamera, dol, gamepadName, engine);
+
+		// ---------- Setting up sound -----------
+		setEarParameters();
+		for (GameObject go : movingEnemies) {
+			bugSounds.get(go).setLocation(go.getLocalLocation());
+			bugSounds.get(go).play();
+		}
 		
 		// Initialize our nodeControllers for each target object
-		selectionRotateController = new RotationController(engine, new Vector3f(0,1,1), 0.001f);
+		selectionRotateController = new RotationController(engine, new Vector3f(0,1,0), 0.001f);
 		selectionRotateController.addTarget(selectAvatar1);
 		selectionRotateController.enable();
 		(engine.getSceneGraph()).addNodeController(selectionRotateController);
@@ -612,8 +617,8 @@ public class MyGame extends VariableFrameRateGame {
 	*/
 	public void setEarParameters()
 	{
-		myCamera = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
-		audioMgr.getEar().setLocation(dol.getWorldLocation());
+		// myCamera = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
+		audioMgr.getEar().setLocation(myCamera.getLocation());
 		audioMgr.getEar().setOrientation(myCamera.getN(), new Vector3f(0.0f, 1.0f, 0.0f));
 	}
 	/** Returns frames per second based on how many frames have occurred in the elapsed time. @return*/
@@ -689,8 +694,8 @@ public class MyGame extends VariableFrameRateGame {
 		} else {
 			Vector3f dolcoords = dol.getWorldLocation();
 			Vector3f dolFwd = dol.getLocalForwardVector();
-			//Vector3f newLocation = dolcoords.add(dolFwd.mul(0.0006f * elapsedFramesPerSecond));
-			//dol.setLocalLocation(newLocation);
+			Vector3f newLocation = dolcoords.add(dolFwd.mul(0.0006f * elapsedFramesPerSecond));
+			dol.setLocalLocation(newLocation);
 			arrangeHUD(elapsedFramesPerSecond);
 			inputManager.update(elapsedFramesPerSecond);
 			orbitController.updateCameraPosition();
@@ -755,14 +760,11 @@ public class MyGame extends VariableFrameRateGame {
 				}
 			} 
 		
-
 			// update sound
 			setEarParameters();
-			for (int i = 0; i < movingEnemies.size(); ++i) {
-				bugChitterSound.setLocation(movingEnemies.get(i).getLocalLocation());
+			for (GameObject go : movingEnemies) {
+				bugSounds.get(go).setLocation(go.getLocalLocation());
 			}
-			audioMgr.getEar().setLocation(dol.getWorldLocation());
-			audioMgr.getEar().setOrientation(myCamera.getN(), new Vector3f(0.0f, 1.0f, 0.0f));
 		}
 	}
 
@@ -987,7 +989,7 @@ public class MyGame extends VariableFrameRateGame {
 		GameObject laser = new TemporaryGameObject(GameObject.root(), laserS, laserTex);
 		Matrix4f initialTranslation = (new Matrix4f()).translation(
 			loc.x(), loc.y(), loc.z());
-		Matrix4f initialScale = (new Matrix4f()).scaling(.8f);
+		Matrix4f initialScale = (new Matrix4f()).scaling(.5f);
 		laser.setLocalTranslation(initialTranslation);
 		laser.setLocalScale(initialScale);
 		laserMarkers.add(laser);
@@ -1037,7 +1039,7 @@ public class MyGame extends VariableFrameRateGame {
 			Vector3f markerLoc = markerObject.getWorldLocation();
 			protClient.sendCreateMarkerMessage(markerObject.getWorldLocation());
 
-			// --remainingMarkers;
+			--remainingMarkers;
 		}
 	}
 
@@ -1106,26 +1108,32 @@ public class MyGame extends VariableFrameRateGame {
 		ListIterator<GameObject> iterMoving = movingBullets.listIterator();
 		while (iterMoving.hasNext()) {
 			GameObject goMoving = iterMoving.next();
-			float ballisticRange = dol.getWorldLocation().sub(goMoving.getWorldLocation()).length();
 			ListIterator<GameObject> iterEnemies = movingEnemies.listIterator();
 			while (iterEnemies.hasNext()) {
 				GameObject goEnemy = iterEnemies.next();
 				float distance = goEnemy.getWorldLocation().sub(goMoving.getWorldLocation()).length();
 				// Remove objects that collided.
-				if (distance < 0.4f) {
+				if (distance < .5f) {
 					GameObject.root().removeChild(goEnemy);
 					GameObject.root().removeChild(goMoving);
 					iterMoving.remove();
+					bugSounds.get(goEnemy).stop();
+					bugSounds.remove(goEnemy);
 					iterEnemies.remove();
 					engine.getSceneGraph().removeGameObject(goEnemy);
 					engine.getSceneGraph().removeGameObject(goMoving);
 				}
 			}
-			if (ballisticRange > 25.0f) {
+		}
+		iterMoving = movingBullets.listIterator();
+		while (iterMoving.hasNext()) {
+			GameObject goMoving = iterMoving.next();
+			float ballisticRange = dol.getWorldLocation().sub(goMoving.getWorldLocation()).length();
+			if (ballisticRange > 20.0f) {
 				GameObject.root().removeChild(goMoving);
 				iterMoving.remove();
 				engine.getSceneGraph().removeGameObject(goMoving);
-			} 
+			}
 		}
 	}
 	/** Handles movements for moving entities, such as missiles, bullets, and enemies, and sends corresponding messages to the server to render them for other clients.
@@ -1159,6 +1167,22 @@ public class MyGame extends VariableFrameRateGame {
 		for (GameObject go: new ArrayList<GameObject>(laserMarkers)) {
 			((TemporaryGameObject)go).setLifetime(((TemporaryGameObject)go).getLifetime() + elapsedFramesPerSecond);
 			if (((TemporaryGameObject)go).getLifetime() > 5000) {
+				ListIterator<GameObject> iterEnemies = movingEnemies.listIterator();
+				while (iterEnemies.hasNext()) {
+					GameObject goEnemy = iterEnemies.next();
+					Vector3f laserHitVec = go.getWorldLocation();
+					float laserDistance = goEnemy.getWorldLocation().sub(
+						laserHitVec.x(), goEnemy.getWorldLocation().y(), laserHitVec.z()).length();
+					// Remove Enemies near the laser.
+					if (laserDistance < .8f) {
+						GameObject.root().removeChild(goEnemy);
+						bugSounds.get(goEnemy).stop();
+						bugSounds.remove(goEnemy);
+						iterEnemies.remove();
+						engine.getSceneGraph().removeGameObject(goEnemy);
+					}  
+				}
+				// Remove Laser after 5000 frames
 				GameObject.root().removeChild(go);
 				laserMarkers.remove(go);
 			}
@@ -1187,16 +1211,18 @@ public class MyGame extends VariableFrameRateGame {
 				GameObject goEnemy = iterEnemies.next();
 				float distance = goEnemy.getWorldLocation().sub(goMoving.getWorldLocation()).length();
 				// Remove objects that collided.
-				if (distance < 0.4f) {
+				if (distance < .5f) {
 					GameObject.root().removeChild(goEnemy);
 					GameObject.root().removeChild(goMoving);
 					iterMoving.remove();
+					bugSounds.get(goEnemy).stop();
+					bugSounds.remove(goEnemy);
 					iterEnemies.remove();
 					engine.getSceneGraph().removeGameObject(goEnemy);
 					engine.getSceneGraph().removeGameObject(goMoving);
 				}  
 			}
-			if (missileRange > 40.0f) {
+			if (missileRange > 20.0f) {
 				GameObject.root().removeChild(goMoving);
 				iterMoving.remove();
 				engine.getSceneGraph().removeGameObject(goMoving);
