@@ -205,11 +205,11 @@ public class MyGame extends VariableFrameRateGame {
 		// https://pixabay.com/sound-effects/critters-creeping-32760/ "Critters creeping" - Pixabay
 		bugSoundResource = audioMgr.createAudioResource("assets/sounds/creepy_alien.wav", AudioResourceType.AUDIO_SAMPLE);
 		for (GameObject go : movingEnemies) {
-			Sound bugChitterSound = new Sound(bugSoundResource, SoundType.SOUND_EFFECT, 50, true);
+			Sound bugChitterSound = new Sound(bugSoundResource, SoundType.SOUND_EFFECT, 15, true);
 			bugChitterSound.initialize(audioMgr);
-			bugChitterSound.setMaxDistance(4.0f);
+			bugChitterSound.setMaxDistance(3.0f);
 			bugChitterSound.setMinDistance(0.5f);
-			bugChitterSound.setRollOff(40.0f);
+			bugChitterSound.setRollOff(7.0f);
 			bugSounds.put(go, bugChitterSound);
 		}
 		
@@ -1422,9 +1422,9 @@ public class MyGame extends VariableFrameRateGame {
 	}
 
 	private void printControls() {
-		System.out.println("****************************************");
-		System.out.println("Gabriele Nicula, CSC 165 - Assignment #3");
-		System.out.println("****************************************\n");
+		System.out.println("*********************************************************");
+		System.out.println("Gabriele Nicula & Keegan Rhoads CSC 165 - Assignment #3");
+		System.out.println("********************************************************\n");
 		System.out.println("**************************");
 		System.out.println("Gamepad and Key Bindings:");
 		System.out.println("**************************\n");
