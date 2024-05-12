@@ -11,7 +11,9 @@ import java.util.Vector;
 import org.joml.*;
 
 import tage.*;
-
+/**
+ * The GhostManager keeps track of all ghost objectsl, such as markers, missiles, and avatars.
+ */
 public class GhostManager
 {
 	private MyGame game;

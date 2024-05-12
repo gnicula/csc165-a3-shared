@@ -11,7 +11,10 @@ import org.joml.*;
 // The ObjShape and TextureImage associated with the ghost
 // must have already been created during loadShapes() and
 // loadTextures(), before the game loop is started.
-
+/**
+ * This class takes care of keeping track of bullets fired by other clients so that they are seen by all users.
+ * @return
+ */
 public class GhostBullet extends GameObject
 {
 	UUID uuid;

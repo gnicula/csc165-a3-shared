@@ -22,6 +22,7 @@ import tage.input.action.*;
 * Camera can be moved in a circular fashion up/down and left/right around the object.
 * Camera can be zoomed in/out of the object.
 * @author Gabriele Nicula
+* @author Expanded by Keegan Rhoads
 */
 
 public class CameraOrbit3D {

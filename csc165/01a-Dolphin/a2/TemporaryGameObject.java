@@ -3,7 +3,10 @@ package a2;
 import tage.GameObject;
 import tage.ObjShape;
 import tage.TextureImage;
-
+/**
+* TemporaryGameObject keeps track of the lifetime for a given {@link GameObject}.
+* @author Gabriele Nicula
+*/
 public class TemporaryGameObject extends GameObject {
     private float lifetime = 0;
 

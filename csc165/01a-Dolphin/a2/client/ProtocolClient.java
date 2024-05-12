@@ -14,6 +14,9 @@ import org.joml.*;
 import tage.*;
 import tage.networking.client.GameConnectionClient;
 
+/**
+ * Houses all client info necessary to interact with the server.
+ */
 public class ProtocolClient extends GameConnectionClient
 {
 	private MyGame game;

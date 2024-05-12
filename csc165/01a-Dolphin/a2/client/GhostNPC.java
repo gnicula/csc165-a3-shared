@@ -6,12 +6,16 @@ import java.util.UUID;
 import tage.*;
 import org.joml.*;
 
+
 // A ghost MUST be connected as a child of the root,
 // so that it will be rendered, and for future removal.
 // The ObjShape and TextureImage associated with the ghost
 // must have already been created during loadShapes() and
 // loadTextures(), before the game loop is started.
 
+/**
+ * Houses creation and handling of ghost NPCs. Currently not implemented.
+ */
 public class GhostNPC extends GameObject
 {
 	UUID uuid;

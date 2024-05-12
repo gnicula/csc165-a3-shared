@@ -12,6 +12,10 @@ import org.joml.*;
 // must have already been created during loadShapes() and
 // loadTextures(), before the game loop is started.
 
+/**
+ * This class takes care of keeping track of missiles fired by other clients so that they are seen by all users.
+ * @return
+ */
 public class GhostMissile extends GameObject
 {
 	UUID uuid;

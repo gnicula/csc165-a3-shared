@@ -1,6 +1,4 @@
-/*
- * @author Gabriele Nicula
- */
+
 
 package a2;
 
@@ -37,6 +35,10 @@ import a2.client.GhostAvatar;
 import a2.client.GhostManager;
 import a2.client.ProtocolClient;
 
+/** Houses main game loop and logic.
+ * @author Gabriele Nicula, Keegan Rhoads
+ * @return
+ */
 public class MyGame extends VariableFrameRateGame {
 	private static Engine engine;
 
@@ -60,9 +62,9 @@ public class MyGame extends VariableFrameRateGame {
 	private ArrayList<GameObject> laserMarkers = new ArrayList<GameObject>();
 	private AnimatedShape enemyShape;
 	private GameObject dol, selectAvatar1, selectAvatar2, base, torus, sphere, sphereSatellite, plane, groundPlane,
-			wAxisX, wAxisY, wAxisZ, manual, magnet, missileObj, tower, reloadingStation, bullet, marker, laser;
+			wAxisX, wAxisY, wAxisZ, manual, magnet, missileObj, tower, reloadingStation, bullet, marker, laser, targeter;
 	private ObjShape dolS, planeS, sphereS, groundPlaneS, wAxisLineShapeX, wAxisLineShapeY, 
-			wAxisLineShapeZ, manualS, magnetS, worldObj, missileShape, towerS, bulletS, markerS, laserS;
+			wAxisLineShapeZ, manualS, magnetS, worldObj, missileShape, towerS, bulletS, markerS, laserS, targeterS;
 	private TextureImage doltx1, doltx2, brick, grass, red, assignt, enemyTexture, metal, water, 
 			torusWater, fur, terrainTexture, terrainHeightMap, missile, towerTexture, tracer, bombTex, laserTex;
 	private Light light1, light2, sphereLight;
@@ -105,7 +107,13 @@ public class MyGame extends VariableFrameRateGame {
 	private final int WindowSizeX = 2000;
 	private final int WindowSizeY = 1000;
 
-	
+	/**
+	 * Seys up the server and {@link GhostManager}.
+	 * @param serverAddress
+	 * @param serverPort
+	 * @param protocol
+	 * 
+	 */
 	public MyGame(String serverAddress, int serverPort, String protocol)
 	{	super();
 		gm = new GhostManager(this);
@@ -155,10 +163,12 @@ public class MyGame extends VariableFrameRateGame {
 		Vector3f lineX = new Vector3f(lineLength, 0f, 0f);
 		Vector3f lineY = new Vector3f(0f, lineLength, 0f);
 		Vector3f lineZ = new Vector3f(0f, 0f, -lineLength);
+		Vector3f targeterLine = new Vector3f(0f, 0f, 500f);
 
 		wAxisLineShapeX = new Line(worldOrigin, lineX);
 		wAxisLineShapeY = new Line(worldOrigin, lineY);
 		wAxisLineShapeZ = new Line(worldOrigin, lineZ);
+		targeterS = new Line(worldOrigin, targeterLine);
 	}
 
 	@Override
@@ -325,12 +335,14 @@ public class MyGame extends VariableFrameRateGame {
 		reloadingStation.setLocalTranslation(initialTranslationM);
 		reloadingStation.setLocalScale(initialScaleM);
 
-		buildEnemyObjects(1);
+		buildEnemyObjects(5);
 
 		// Build World Axis Lines (X, Y, Z) in the center of the window
 		wAxisX = new GameObject(GameObject.root(), wAxisLineShapeX);
 		wAxisY = new GameObject(GameObject.root(), wAxisLineShapeY);
 		wAxisZ = new GameObject(GameObject.root(), wAxisLineShapeZ);
+		targeter = new GameObject(dol, targeterS);
+		targeter.applyParentRotationToPosition(true);
 
 		// Set world axis colors (red, green, blue) - X, Y, Z respectively
 		wAxisX.getRenderStates().setColor(new Vector3f(1.0f, 0, 0));
@@ -595,22 +607,33 @@ public class MyGame extends VariableFrameRateGame {
 		setupNetworking();
 		printControls();
 	}
-
+	/** Sets up {@link IAudioManager} parameters for the Avatar.
+	 * 
+	*/
 	public void setEarParameters()
 	{
 		myCamera = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
 		audioMgr.getEar().setLocation(dol.getWorldLocation());
 		audioMgr.getEar().setOrientation(myCamera.getN(), new Vector3f(0.0f, 1.0f, 0.0f));
 	}
-
+	/** Returns frames per second based on how many frames have occurred in the elapsed time. @return*/
 	private float getFramesPerSecond() {
 		return (float) (frameCounter / elapsTime);
 	}
 
+	/** String formatting for a {@link Vector3f} to truncate it for the hud elements.
+	 * 
+	 * @param v
+	 * @return
+	*/
 	private String printVector3f(Vector3f v) {
 		return String.format("x:%2.3f, y:%2.3f, z:%2.3f", v.x(), v.y(), v.z());
 	}
-
+	/** Function to lay out all of the hud elements.
+	 * 
+	 * @param elapsedFramesPerSecond
+	 *
+	*/
 	private void arrangeHUD(float elapsedFramesPerSecond) {
 		// build and set HUD
 		int elapsTimeSec = Math.round((float) elapsTime);
@@ -793,21 +816,36 @@ public class MyGame extends VariableFrameRateGame {
 		}
 		super.keyPressed(e);
 	}
-
+	/** Returns the main {@link Camera} object.
+	 * 
+	 * @return
+	*/
 	public Camera getMyCamera() {
 		return myCamera;
 	}
-
+	/** Returns the main viewport camera object.
+	 * 
+	 * @return
+	*/
 	public Camera getMyViewportCamera() {
 		return myViewportCamera;
 	}
 
 	// For A2 this should always return false.
+	/** For dismounting and mounting the dolphin.
+	 * Returns a boolean.
+	 * @deprecated
+	 * @return
+	 */
 	public boolean onDolphinCam() {
 		return !offDolphinCam;
 	}
 
 	// No calls are made to this method for A2
+	/**  Sets the camera in a fixed position above and behind the dolphin if the avatar is mounted.
+	 * @deprecated
+	 * 
+	*/
 	public void setOnDolphinCam() {
 		float hopOnDistance = -1.75f;
 		float upDistance = 0.5f;
@@ -825,6 +863,12 @@ public class MyGame extends VariableFrameRateGame {
 	}
 
 	// No calls are made to this method for A2
+	/**  Sets the camera in a fixed position above and behind the dolphin when the Avatar dismounts.
+	 *
+	 * The camera will no longer follow the dolphin.
+	 * 	@deprecated
+	 * 
+	 */
 	public void setOffDolphinCam() {
 		float hopOffDistance = -2.0f;
 		float upDistance = 1.0f;
@@ -840,11 +884,18 @@ public class MyGame extends VariableFrameRateGame {
 
 		offDolphinCam = true;
 	}
-
+	/** Returns the main avatar game object (internally referred to as "dolphin")
+	 * 
+	 */
 	public GameObject getDolphin() {
 		return dol;
 	}
 
+	/** Used when the dolphin collects magnets. Adds them as children to the manual object required in A2.
+	 * @deprecated
+	 * @param n_magnet
+	 *
+	 */
 	public void AddMagnetToManualObject(int n_magnet) {
 		Matrix4f initialTranslationMagnet, initialScaleMagnet, initialRotationMagnet;
 		// build the magnet object
@@ -868,6 +919,12 @@ public class MyGame extends VariableFrameRateGame {
 		engine.getSceneGraph().addNodeController(magnetSpinController);
 	}
 
+	/** Used when the dolphin is close to magnets to check if they should be picked up.
+	 * 
+	 * @deprecated
+	 * @param gObject
+	 * @return
+	 */
 	public boolean checkDolphinNearObject(GameObject gObject) {
 		Vector3d distanceToObj = new Vector3d(0, 0, 0);
 		distanceToObj.x = (Math.abs(
@@ -880,7 +937,11 @@ public class MyGame extends VariableFrameRateGame {
 		double distance = distanceToObj.length();
 		return (distance < 0.5) ? true : false;
 	}
-
+	/** Updates the dolphin score based on whether they have visited specific sites in A2.
+	 * 
+	 * @deprecated
+	 * 
+	 */
 	private void updateDolphinScore() {
 		// Check for each object (cub, torus, sphere, plane) and update visited state
 		if (!visitedSites[0]) {
@@ -906,6 +967,11 @@ public class MyGame extends VariableFrameRateGame {
 		}
 	}
 
+	/** Toggles node controllers required in A2.
+	 * 
+	 * @deprecated
+	 * 
+	 */
 	private void toggleNodeControllers() {
 		for (int i = 0; i < visitedSites.length; ++i) {
 			if (visitedSites[i] && !controllerArr.get(i).isEnabled()) {
@@ -913,7 +979,10 @@ public class MyGame extends VariableFrameRateGame {
 			}
 		}
 	}
-
+	/** Creates laser objects, usually when a laserMarker has been created. This laser can damage enemies.
+	 * @param loc
+	 * 
+	*/
 	public void createLaserObjects(Vector3f loc) {
 		GameObject laser = new TemporaryGameObject(GameObject.root(), laserS, laserTex);
 		Matrix4f initialTranslation = (new Matrix4f()).translation(
@@ -923,7 +992,11 @@ public class MyGame extends VariableFrameRateGame {
 		laser.setLocalScale(initialScale);
 		laserMarkers.add(laser);
 	}
-	
+	/** Creates a marker physics object that inherits the avatar's location and direction.
+	 * If the player has remaining markers, drop a marker. Otherwise, do nothing. Does not damage enemies on its own.
+	 * @param speed
+	 * 
+	 */
 	public void dropMarker(float speed) {
 		if (remainingMarkers > 0) {
 			GameObject markerObject = new TemporaryGameObject(GameObject.root(), markerS, bombTex);
@@ -968,6 +1041,11 @@ public class MyGame extends VariableFrameRateGame {
 		}
 	}
 
+	/** Creates a fast moving projectile originating at the avatar. This missile can collide and destroy enemies. Inherits avatars direction and location.
+	 * Collisons are handled via {@link updateMovingObjects}.
+	 * @param speed
+	 * 
+	*/
 	public void fireMissile(float speed) {
 		if (remainingMissiles > 0) {
 			GameObject missileObject = new GameObject(GameObject.root(), missileShape, missile);
@@ -992,7 +1070,11 @@ public class MyGame extends VariableFrameRateGame {
 			--remainingMissiles;
 		}
 	}
-
+	/** Creates many fast moving projectiles originating at the avatar. These bullets can collide and destroy enemies. Inherits avatars direction and location.
+	 * Collisons are handled via {@link updateMovingObjects}.
+	 * @param speed
+	 * 
+	*/
 	public void fireBullet(float speed) {
 		GameObject bulletObject = new GameObject(GameObject.root(), bulletS, tracer);
 		Vector3f dolLocation = dol.getWorldLocation();
@@ -1009,7 +1091,10 @@ public class MyGame extends VariableFrameRateGame {
 		cannonSound.setLocation(dol.getWorldLocation());
 		cannonSound.play();
 	}
-
+	/** Handles moving bullets and sends corresponding messages to the server to render them for other clients.
+	 * @param elapsedFramesPerSecond
+	 * 
+	*/
 	private void updateMovingBullets(float elapsedFramesPerSecond) {
 		// First perform the scheduled object moves
 		for (GameObject go: movingBullets) {
@@ -1038,7 +1123,12 @@ public class MyGame extends VariableFrameRateGame {
 			// TODO: Check if out of boundary and remove object
 		} 
 	}
-
+	/** Handles movements for moving entities, such as missiles, bullets, and enemies, and sends corresponding messages to the server to render them for other clients.
+	 * Enemies are not synchronized across clients, and all clients have their own enemies to shoot.
+	 * 
+	 * @param elapsedFramesPerSecond
+	 * 
+	*/
 	private void updateMovingObjects(float elapsedFramesPerSecond) {
 		// First perform the scheduled object moves
 		enemyShape.updateAnimation();
@@ -1071,9 +1161,9 @@ public class MyGame extends VariableFrameRateGame {
 
 		for (GameObject go: movingEnemies) {
 			go.lookAt(base);
-			//go.moveForwardBack(0.0001f*elapsedFramesPerSecond, new Vector3f());
+			go.moveForwardBack(0.0001f*elapsedFramesPerSecond, new Vector3f());
 			setObjectHeightAtLocation(go);
-			if (go.getWorldLocation().sub(base.getWorldLocation()).length() < 0.1) {
+			if (go.getWorldLocation().sub(base.getWorldLocation()).length() < 1) {
 				//enemyShape.stopAnimation();
 				//enemyShape.playAnimation("IDLE", 0.2f, AnimatedShape.EndType.LOOP, 0);
 				gameOver = 2;
@@ -1100,7 +1190,10 @@ public class MyGame extends VariableFrameRateGame {
 			// TODO: Check if out of boundary and remove object
 		} 
 	}
-
+	/** Checks if the avatar has collided with the ground and corrects location.
+	 * 
+	 * 
+	*/
 	public void avatarGroundCollision() {
 		Vector3f loc = dol.getWorldLocation();
 		float height = groundPlane.getHeight(loc.x(), loc.z());
@@ -1109,23 +1202,36 @@ public class MyGame extends VariableFrameRateGame {
 			dol.setLocalTranslation(initialTranslation);
 		}
 	}
-
+	/** Wraps the {@link Terrain} heightmap {@link getHeight} function to easily update height locations for {@link GameObject}.
+	 * 
+	 *
+	*/
 	public void setObjectHeightAtLocation(GameObject go) {
 		Vector3f loc = go.getWorldLocation();
 		float height = groundPlane.getHeight(loc.x(), loc.z());
 		go.setLocalLocation(new Vector3f(loc.x(), height + bugHeightAdjust, loc.z()));
 	}
-
+	/**
+	 * Checks for proximity to reloading station to replenish missiles.
+	 * 
+	 */
 	private void checkForMissileReloading() {
-		if (dol.getWorldLocation().sub(reloadingStation.getWorldLocation()).length() < 0.2f) {
+		if (dol.getWorldLocation().sub(reloadingStation.getWorldLocation()).length() < 1f) {
 			remainingMissiles = 5;
 		}
 	}
 
+	/**
+	 * Returns which avatar the player has selected.
+	 * @return
+	 */
 	public int getSelectedAvatar() {
 		return selectedAvatar;
 	}
-
+	/**
+	 * Sets the avatar the player has selected.
+	 * @return
+	 */
 	public void setSelectedAvatar(int a) {
 		if (a == 1) {
 			selectedAvatar = 1;
@@ -1293,10 +1399,10 @@ public class MyGame extends VariableFrameRateGame {
 		System.out.println("\tRoll Right:\t\t\t\tE, Gamepad Left Joystick X-Axis right");
 		System.out.println("\tPitch Up:\t\t\t\tUp Arrow, Gamepad Left Joystick Y-Axis down");
 		System.out.println("\tPitch Down:\t\t\t\tDown Arrow, Gamepad Left Joystick Y-Axis up");
-		System.out.println("\tCamera Rotate Left:\t\t\tGamepad Right Joystick RX-axis left");
-		System.out.println("\tCamera Rotate Right:\t\t\tGamepad Right Joystick RX-axis right");
-		System.out.println("\tCamera Elevation Up:\t\t\tGamepad Right Joystick RY-axis up");
-		System.out.println("\tCamera Elevation Down:\t\t\tGamepad Right Joystick RY-axis down");
+		System.out.println("\tCamera Rotate Left:\t\t\tLeft Arrow, Gamepad Right Joystick RX-axis left");
+		System.out.println("\tCamera Rotate Right:\t\t\tRight Arrow, Gamepad Right Joystick RX-axis right");
+		System.out.println("\tCamera Elevation Up:\t\t\tR, Gamepad Right Joystick RY-axis up");
+		System.out.println("\tCamera Elevation Down:\t\t\tF, Gamepad Right Joystick RY-axis down");
 		System.out.println("\tCamera Zoom In:\t\t\t\tGamepad Button 3");
 		System.out.println("\tCamera Zoom Out:\t\t\tGamepad Button 4");
 		System.out.println("\tFire Main Gun:\t\t\t\tGamepad Button 2");
@@ -1312,7 +1418,7 @@ public class MyGame extends VariableFrameRateGame {
 		System.out.println("\tJet Wireframe On:\t\t\t2");
 		System.out.println("\tJet Wireframe Off:\t\t\t3");
 		System.out.println("\tStarting physics:\t\t\t5 (On by Default)");
-		System.out.println("\tTurning off Tower Light:\t\t\t6");
+		System.out.println("\tTurning off Tower Light:\t\t6");
 		System.out.println("\tTurning on Tower Light:\t\t\t7");
 		System.out.println("\tExit Game:\t\t\t\tESC");
 	}

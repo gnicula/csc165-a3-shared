@@ -3,6 +3,11 @@ package a2;
 import tage.*;
 import tage.shapes.*;
 
+/**
+ * Manual object for A2
+ * @deprecated
+ * @author Gabriele Nicula
+ */
 public class MyManualObject extends ManualObject {
     private float[] vertices = new float[]
     {

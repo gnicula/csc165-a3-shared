@@ -11,7 +11,10 @@ import org.joml.*;
 // The ObjShape and TextureImage associated with the ghost
 // must have already been created during loadShapes() and
 // loadTextures(), before the game loop is started.
-
+/**
+ * This class takes care of keeping track of Avatars from other users.
+ * @return
+ */
 public class GhostAvatar extends GameObject
 {
 	UUID uuid;
